@@ -1,0 +1,93 @@
+---
+title: "Introducción a R"
+subtitle: "Ejercicios clase 3"
+output:
+  html_document:
+    toc: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+## TAREA CLASE 3
+
+```{r  warning = FALSE, message = FALSE}
+library(tidyverse)
+library(openxlsx)
+library(lubridate)
+```
+
+1-Cargar la base de vacunación en CABA
+URL : https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/vacunas_caba.csv
+```{r, echo=F}
+vacunas_caba <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/vacunas_caba.csv')
+head(vacunas_caba)
+```
+
+2-Reemplazar los valores NA de la columna DOSIS_3 por valor 0 (igual que la tarea anterior)
+```{r, echo=F}
+
+vacunas_caba$DOSIS_3[is.na(vacunas_caba$DOSIS_3)] <- 0
+
+sum(is.na(vacunas_caba$DOSIS_3))
+
+```
+
+3- Crear una nueva variable llamada "TOTAL_VACUNAS" que sea la suma de DOSIS_1, DOSIS_2, DOSIS_3 (igual que en la tarea anterior)
+```{r, echo=F}
+vacunas_caba <- vacunas_caba %>% 
+  mutate(TOTAL_VACUNAS = DOSIS_1+DOSIS_2+DOSIS_3)
+
+head(vacunas_caba)
+```
+
+4-Obtener una variable resumen que indique la cantidad total de vacunas aplicadas agrupado por día
+```{r, echo=F}
+por_dia <- vacunas_caba %>% 
+  group_by(FECHA_ADMINISTRACION) %>% 
+  summarise(vacunas_por_dia = sum(TOTAL_VACUNAS)) %>% 
+  arrange(FECHA_ADMINISTRACION)
+
+head(por_dia)
+```
+
+5- Lo mismo que el punto anterior pero también agrupar por Genero
+```{r, echo=F}
+por_dia_g <- vacunas_caba %>% 
+  group_by(FECHA_ADMINISTRACION, GENERO) %>% 
+  summarise(vacunas_por_dia = sum(TOTAL_VACUNAS)) %>% 
+  arrange(FECHA_ADMINISTRACION)
+
+head(por_dia_g)
+```
+6- Crear una nueva tabla que exprese el total de primeras dosis aplicadas agrupado por rango etario
+```{r, echo=F}
+grupo_etario <- vacunas_caba %>% 
+  group_by(GRUPO_ETARIO) %>% 
+  summarise(total_1_dosis = sum(DOSIS_1))
+head(grupo_etario)
+```
+7- Crear una tabla que exprese el total de 2das dosis aplicadas por año y mes
+```{r, echo=F}
+
+vacunas_caba$mes <-  months(as.Date(vacunas_caba$FECHA_ADMINISTRACION)) 
+vacunas_caba$anio <-  year(as.Date(vacunas_caba$FECHA_ADMINISTRACION)) 
+
+vacunas_mes <- vacunas_caba %>% 
+  group_by(anio,mes) %>% 
+  summarise(total = sum(DOSIS_2)) %>% 
+  mutate( mes = factor(mes, levels = month.name) ) %>% 
+  arrange(anio,mes)
+
+vacunas_mes
+  
+```
+8- Crear una tabla que exprese el total de vacunas aplicadas agrupada por marca de vacuna
+```{r, echo=F}
+
+marca <- vacunas_caba %>% 
+  group_by(VACUNA) %>% 
+  summarise(Total = sum(TOTAL_VACUNAS)) %>% 
+  arrange(desc(Total))
+
+marca
+```

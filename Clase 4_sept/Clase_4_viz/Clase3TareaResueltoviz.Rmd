@@ -1,0 +1,161 @@
+---
+title: "Introducción a R"
+subtitle: Ejercicios clase 3  Resuelto
+output:
+  html_document:
+    toc: yes
+    toc_float: yes
+    toc_collapsed: yes
+    toc_depth: 3
+    theme: lumen
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+## TAREA CLASE 3
+
+````{r results = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(openxlsx)
+library(ggplot2)
+library(lubridate)
+library(plotly)
+options(scipen=999) # para quitar la notación científica
+```
+
+## 1-Cargar la base de vacunación de CABA.
+```{r}
+base_caba <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/vacunas_caba.csv', encoding = 'UTF-8', fill = TRUE) %>% 
+  select(-(1))
+
+base_caba <- base_caba %>% 
+  mutate(FECHA_ADMINISTRACION = ymd(FECHA_ADMINISTRACION)) %>% # cambiamos clase fecha
+  select(-(8)) # eliminamos la columna que tiene el índice
+
+head(base_caba)
+```
+
+## 2- Crear una columna llamada "total_vacunas" que sea la suma de las 3 dosis en cada línea
+```{r}
+base_caba <- base_caba %>% 
+  mutate(total_vacunas = DOSIS_1+DOSIS_2+DOSIS_3)
+
+base_caba[is.na(base_caba)] <- 0  # reemplazamos los valores faltantes por 0
+
+head(base_caba)
+```
+  
+## 3-Crear una nueva tabla con una variable resumen que indique la cantidad total de vacunas por grupo etario
+```{r}
+edades <- base_caba %>% 
+  group_by(GRUPO_ETARIO,GENERO) %>% 
+  summarise(Total = sum(total_vacunas))
+
+head(edades)
+```
+
+## 4- Crear un gráfico de barras por grupo etario dividido por género que exprese la cantidad de vacunas aplicadas:
+```{r}
+ggplot(edades)+
+  aes(x = GRUPO_ETARIO, y = Total, fill = GENERO)+
+  geom_col( color = 'black')+
+  labs(title = 'Cantidad de vacunas aplicadas por rango etario en CABA',
+       x= 'Grupo etario', 
+       caption = 'Fuente: Datos abiertos de la CABA')+
+  theme_minimal()+
+  scale_fill_brewer(palette = "Set1")
+
+```
+  
+## 5-Crear un gráfico de barras que agrupe por tipo de vacuna y tipo de dosis.
+Agrupamos por vacuna y sumamos diferenciando por dosis.
+```{r}
+vacunas <- base_caba %>% 
+  group_by(VACUNA) %>% 
+  summarise(dosis1 = sum(DOSIS_1),
+            dosis2 = sum(DOSIS_2),
+            dosis3 = sum(DOSIS_3, na.rm = TRUE)) # na.rm sirve para quitar los valores NA (not available)
+
+vacunas$VACUNA[5] = 'CANSINO' # reemplazamos el nombre de la vacuna por uno más corto
+vacunas$VACUNA[6] = 'PFIZER'  # idem
+
+vacunas <- vacunas %>% 
+  pivot_longer(., cols = 2:4, names_to = 'Dosis', values_to = 'Cantidad') # Pasamos las columnas de dosis como filas para poder graficar subdividiente
+
+head(vacunas)
+
+```
+Graficamos:
+```{r}
+ggplot(data = vacunas, aes(x= reorder(VACUNA, -Cantidad), y= Cantidad, fill= Dosis))+
+  geom_col(position = position_dodge(), color = 'black')+
+  labs(title = 'Tipos de vacunas aplicadas en CABA',
+       subtitle = 'Discriminado por dosis',
+       caption = 'Fuente: Datos abiertos de CABA 2021-2022',
+       x = 'Vacuna')+
+  theme_minimal()+
+  scale_fill_brewer(palette = "Set2")
+```
+  
+## 6- Crear un gráfico de línea que muestre la cantidad de vacunas aplicadas por día y por género con etiqueta mensual.
+pista: agrupar por día y genero. De la base agrupada filtrar por genero.
+```{r}
+por_dia <- base_caba %>% 
+  group_by(FECHA_ADMINISTRACION, GENERO) %>% 
+  summarise(total_vacunas = sum(total_vacunas))
+
+ggplot(por_dia, aes(x = FECHA_ADMINISTRACION, y = total_vacunas))+
+  geom_line(data = por_dia, aes(col = GENERO))+
+  scale_x_date(date_breaks = '1 month')+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90))+
+  labs(title = 'Cantidad de vacunas aplicadas por día por género en CABA',
+       x = 'Fecha administración', y='Cantidad de vacunas aplicadas',
+       col = 'Género')
+
+
+```
+
+## 7-Realizar un gráfico de la cantidad de vacunas aplicadas por día por marca (pfizer, moderna, etc..)
+Pista: utilizar la función facet_wrap() para crear los gráficos por marca.
+```{r}
+tipo_vacuna <- base_caba %>% 
+  group_by(FECHA_ADMINISTRACION, VACUNA) %>% 
+  summarise(total_vacunas = sum(total_vacunas)) 
+
+
+ggplot(tipo_vacuna, aes(x = FECHA_ADMINISTRACION, y = total_vacunas))+
+  geom_line(data =tipo_vacuna, aes(y = total_vacunas))+
+  facet_wrap(~VACUNA)+
+  scale_x_date(breaks = '3 month')+
+  theme(axis.text.x = element_text(angle = 90))
+            
+            
+```
+
+## 8- Realizar un gráfico de barras que exprese la proporción de vacunas aplicadas agrupado por rango etario.
+```{r}
+rangos <- base_caba %>% 
+  group_by(GRUPO_ETARIO) %>% 
+  summarise(total = sum(total_vacunas), # total de vacunas aplicadas
+            varones_n = sum(total_vacunas[GENERO == 'M']), # total aplicadas a varones
+            mujeres_n = sum(total_vacunas[GENERO =='F']), # total aplicadas a mujeres
+            varones = varones_n / total * 100, # proporcion a varones
+            mujeres = mujeres_n / total * 100) %>%  # proporcion a mujeres
+  mutate(varones = as.integer(varones), # convertirmos el valor en entero
+         mujeres = as.integer(mujeres)) %>%  # idem
+  select(GRUPO_ETARIO, varones, mujeres) %>% # seleccionamos las columnas que nos interesan
+  pivot_longer(., cols = 2:3, names_to = 'GENERO', values_to = 'Porcentaje') # Pasamos el género como fila
+
+head(rangos)
+
+```
+```{r}
+ggplot(rangos) +
+  aes(x = GRUPO_ETARIO, y = Porcentaje , fill = GENERO)+
+  geom_col( color = 'black',
+           position = position_dodge())+
+  coord_flip()
+
+```
+  

@@ -1,0 +1,3 @@
+"0","base <- read.delim(""transcripcion_debate.txt"","
+"0","                   header= F) %>% "
+"0","  rename(txt = 1)"

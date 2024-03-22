@@ -1,0 +1,2 @@
+"0","stop_words <- read.delim('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/stop_words.csv')"
+"0",""

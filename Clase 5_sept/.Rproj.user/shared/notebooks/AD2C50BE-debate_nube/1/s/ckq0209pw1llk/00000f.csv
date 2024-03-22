@@ -1,0 +1,6 @@
+"0",""
+"0","unigram <- bregman %>% "
+"0","  unnest_tokens(output= word, input= txt, token = ""ngrams"", n = 1) %>%"
+"0","  na.omit() %>%  # omitimos las líneas vacías"
+"0","  anti_join(stop_words) # eliminamos las stop words"
+"2","Joining with `by = join_by(word)`"

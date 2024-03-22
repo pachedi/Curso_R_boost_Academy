@@ -1,0 +1,606 @@
+---
+title: "Clase 3  Visualizacion de Datos"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    #number_sections: true
+    theme: lumen
+---
+## Visualizacion de datos
+````{r results = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(openxlsx)
+library(ggplot2)
+library(lubridate)
+library(RCurl)
+library(plotly)
+options(scipen=999) # para quitar la notación científica
+```
+## Gráficos básicos
+Iris es una base de datos incorporada a R que puede servir para probar graficos.
+```{r mtcars}
+iris[1:10, ]
+```
+
+## Scatter plot
+De una manera muy simple, podemos graficar una columna utlizando el indice como eje x y seleccionando el 'tipo' como punto ('p'):
+
+```{r sepal width}
+plot(iris$Sepal.Width, type = 'p')
+
+```
+
+Tambien podemos crear un grafico de lineas utilizando el comando type= 'l':
+  
+## Line plot
+```{r }
+plot(iris$Sepal.Width, type = 'l')
+```
+Utilizando el valor 'b' (both) graficamos ambos tipos:
+  
+```{r pressureplot}
+plot(iris$Sepal.Width, type = 'b')
+```
+## Histograma
+Podemos también graficar un histograma con las frecuencias de cada valor, elegir el color y sumar un título:
+```{r Histograma}
+hist(iris$Sepal.Width, col = "blue", main = "Primer Histograma")
+```
+  
+Es posbile guardar los gráficos como archivo de imagen con la función png.
+Ruta_png va a ser la ruta donde se guarda el archivo
+La funcion png abre el dispositivo de imagen
+Luego, se crea la imagen a guardar (en este caso el histograma)
+Finalmente se cierra el dispositivo de imagen y queda guardado el archivo.
+```{r  echo=FALSE}
+ruta_png <- 'mi_primer_histograma.png'
+png(ruta_png)
+hist(iris$Sepal.Width, col = "blue", main = "Primer Histograma")
+dev.off()
+
+```
+## GGPLOT
+Ggplot es la librería de gráficos más importante de R. 
+Esta libreria funciona con el comando ggplot() en el que se van sumando las distintas 'capas' que queremos agregar al gráfico.
+
+
+En primer lugar creamos el grafico más simple:
+data = mtcars (nombre de la base de datos)
+aes() de 'aesthetic'
+x (eje) wt = peso del auto
+y (eje) = caballos de fuerza del auto
+geom_point() = tipo punto para mostrar el valor
+
+```{r  echo=FALSE}
+ggplot(data = mtcars, aes(x = wt, y=hp))+
+  geom_point()
+```
+  
+Le agregamos un título:
+
+```{r Mejorando el plot}
+ggplot(data = mtcars, aes(x = wt, y=hp))+
+  geom_point()+
+  labs(title = "Peso y potencia de autos")
+```
+  
+Le podemos agregar un color por cantidad de cilindros
+
+```{r Color por cinlindrada}
+ggplot(data = mtcars, aes(x = wt, y = hp, color = cyl))+
+  geom_point()+
+  labs(title = "Peso y potencia de autos")
+```
+  
+Con el valor 'alpha' en geom_point, podemos hacer más transparente o más opaco el punto:
+```{r  echo=FALSE}
+ggplot(data = mtcars, aes(x = wt, y = hp, color = cyl))+
+  geom_point(alpha=0.50)+
+  labs(title = "Peso y potencia de autos")
+```
+  
+Podemos crear distintos gráficos según categoría. En este caso, podemos dividirlos por el tipo de motor que tienen ('vs')
+```{r Gráfico por tipo de motor}
+ggplot(data = mtcars, aes(x = wt, y = hp, color = cyl))+
+  geom_point(alpha=0.50)+
+  facet_wrap(~vs)+
+  labs(title = "Peso y potencia de autos")
+```
+## BASE TARJETAS SUBE
+Carguemos ahora
+```{r }
+# Fuente: https://datos.transporte.gob.ar/dataset?tags=SUBE
+
+base_sube <- read.csv("https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/dat-ab-usuarios-2020.csv",sep=';', encoding = 'UTF-8')
+```
+  
+Veamos un poco cómo está estructurada la base
+```{r }
+head(base_sube)
+```
+  
+Filtremos la base por AMBA para tener una delimitación geográfica.
+```{r }
+base_amba <- base_sube %>% 
+  filter(AMBA == 'SI')
+head(base_amba)
+
+```
+  
+Como podemos ver, la base está desagregada por Sexo, Tipo de transporte y Tipo de descuento. Vamos a quedarnos solo con los totales
+```{r }
+filtro_totales <- base_amba %>% 
+  filter(TIPO_TRANSPORTE == 'TOTAL')
+```
+  
+Agrupemos por día y género para tener una primera visión
+```{r warning = FALSE}
+filtros_genero <- filtro_totales %>% 
+  group_by(DIA_TRANSPORTE,GENERO) %>% 
+  summarise(Cantidad_total = sum(CANT_TRJ))
+```
+  
+Las tarjetas SUBE pueden estar identificadas o no. Cuando no hay un usuario registrado, el valor del Género aparece vacío o ''.
+Quedémonos sólo con las líneas que tienen usuario registrado.
+```{r }
+filtros_genero_2 <- filtros_genero  %>% 
+  #filter(GENERO == 'M' | GENERO == 'F')
+  filter(! GENERO == '')
+```
+  
+¿Qué formato tiene la columna fecha?
+```{r }
+class(filtros_genero_2$DIA_TRANSPORTE)
+```
+  
+Caramba. No es lo que necesitamos. Para armar una línea temporal, es necesario que el tipo sea 'Date'. Vamos a 'castearlo' entonces.
+```{r }
+filtros_genero_3 <- filtros_genero_2 %>% 
+  mutate(DIA_TRANSPORTE = ymd(DIA_TRANSPORTE))
+
+class(filtros_genero_3$DIA_TRANSPORTE)
+```
+  
+¡Bien! Ahora sí, creemos una base agrupada por día con la cantidad total de viajes.
+```{r }
+Total_agrupado <- filtro_totales %>% 
+  group_by(DIA_TRANSPORTE) %>% 
+  summarise(Cantidad = sum(CANT_TRJ))
+```
+  
+Empecemos con el gráfico más simple posible:
+```{r }
+plot(Total_agrupado$Cantidad, type = 'l')
+```
+  
+Si bien le faltan mejoras vemos que con muy pocos comandos pudimos graficar datos. Rápidamente podemos ver que antes del día 100 sucede una baja drástica en la cantidad de viajes.
+Usemos ggplot ahora.
+## Gráfico de líneas
+```{r }
+ggplot(data = filtros_genero_3, aes(x = DIA_TRANSPORTE, y = Cantidad_total))+
+  geom_line()
+```
+  
+Ya tenemos nuestro primer gráfico en ggplot. Vemos que ahora en el eje x ya tenemos una línea temporal y no el número del índice.
+Sumemos funciones. Por ejemplo, facet_wrap() permite crear gráficos según categorías de una variable. Usemos GENERO.
+```{r }
+ggplot(data = filtros_genero_3, aes(x = DIA_TRANSPORTE, y = Cantidad_total))+
+  geom_line()+
+  facet_wrap(~GENERO)
+```
+  
+Nos permite ver la línea temporal de cantidad de viajes según género.
+Si miramos el eje x, vemos que las etiquetas se muestran cada 3 meses. Eso se puede configuar utilizando 'breaks' que elijamos.
+```{r }
+ggplot(data = filtros_genero_3, aes(x = DIA_TRANSPORTE, y = Cantidad_total))+
+  geom_line()+
+  scale_x_date(date_breaks = '1 month')
+```
+  
+Mientras más etiquetas agregamos, más posibilidades hay de que se superpongan los textos. Ggplot nos permite rotar las etiquetas para evitar estos inconvenientes.
+```{r }
+ggplot(data = filtros_genero_3, aes(x = DIA_TRANSPORTE, y = Cantidad_total))+
+  geom_line()+
+  scale_x_date(date_breaks = '1 month')+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90))
+```
+  
+También existe la posibilidad de presentar las etiquetas del eje en la parte superior del gráfico.
+```{r }
+ggplot(data = filtros_genero_3, aes(x = DIA_TRANSPORTE, y = Cantidad_total))+
+  geom_line()+
+  scale_x_date(position = 'top')
+  theme(axis.text.x = element_text(angle = 90))
+```
+  
+El fondo también se puede customizar con la función theme
+```{r }
+ggplot(data = filtros_genero_3, aes(x = DIA_TRANSPORTE, y = Cantidad_total))+
+  geom_line()+
+  scale_x_date(date_breaks = '1 month')+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r }
+ggplot(data = filtros_genero_3, aes(x = DIA_TRANSPORTE, y = Cantidad_total))+
+  geom_line()+
+  scale_x_date(date_breaks = '1 month')+
+  theme_classic()+
+  theme(axis.text.x = element_text(angle = 90))
+```
+  
+Otros: theme_dark(), theme_gray(), theme_linedraw(), theme_light()
+
+Probemos ahora de graficar 2 líneas.
+Primero creamos tablas con filtros por genero:
+```{r }
+# Mujeres 
+FEM <- filtros_genero_3 %>% 
+  filter(GENERO == 'F')
+# Varones
+
+MASC <- filtros_genero_3 %>% 
+  filter(GENERO == 'M')
+```
+
+```{r }
+plot(FEM$DIA_TRANSPORTE, FEM$Cantidad_total, type = 'l', col = 'red', main = 'Movilidad durante 2020 V vs M')
+lines(FEM$DIA_TRANSPORTE, MASC$Cantidad_total, col = 'blue')
+```
+  
+Probemos con ggplot:
+```{r }
+ggplot(FEM, aes(x = DIA_TRANSPORTE, y= Cantidad_total)) + 
+  geom_line(data = MASC,aes(y = Cantidad_total, colour = "Masculino")) +
+  geom_line(data = FEM,aes(y = Cantidad_total, colour = "Femenino"))+
+  labs(title = 'Movilidad diaria SUBE por Sexo en 2020')
+```
+  
+Agreguemos etiquetas a los ejes para que no quede el nombre de la variable sino un nombre más adecuado:
+```{r }
+ggplot(FEM, aes(DIA_TRANSPORTE, Cantidad_total)) + 
+  geom_line(data = MASC,aes(y = Cantidad_total, colour = "Masculino")) +
+  geom_line(data = FEM,aes(y = Cantidad_total, colour = "Femenino"))+
+  labs(title = 'Movilidad diaria SUBE por Sexo en 2020',
+       x = 'Fecha',
+       y = 'Cantidad de viajes SUBE')
+```
+  
+Podemos agregar la fuente y cambiar el nombre de la leyenda:
+```{r }
+ggplot(FEM, aes(DIA_TRANSPORTE, Cantidad_total)) + 
+  geom_line(data = MASC,aes(y = Cantidad_total, colour = "Masculino")) +
+  geom_line(data = FEM,aes(y = Cantidad_total, colour = "Femenino"))+
+  labs(title = 'Movilidad diaria SUBE por Sexo en 2020',
+       x = 'Fecha',
+       y = 'Cantidad de viajes SUBE',
+       caption = 'Elaboracion propia en base a datos abiertos SUBE',
+       col = 'Sexo') +
+       theme_minimal()
+```
+  
+```{r }
+ggplot(FEM, aes(DIA_TRANSPORTE, Cantidad_total)) + 
+  geom_line(data = MASC,aes(y = Cantidad_total, colour = "Masculino")) +
+  geom_line(data = FEM,aes(y = Cantidad_total, colour = "Femenino"))+
+  labs(title = 'Movilidad diaria SUBE por Sexo en 2020',
+       x = 'Fecha',
+       y = 'Cantidad de viajes SUBE',
+       caption = 'Elaboracion propia en base a datos abiertos SUBE') +
+  theme_minimal()+
+  scale_x_date(breaks = '1 month')+
+  theme(axis.text.x = element_text(angle = 90))+
+  geom_vline(aes(xintercept =as.Date('2020-03-20'), col='ASPO') , linetype="dashed")+
+  geom_vline(aes(xintercept =as.Date('2020-11-30'), col='DISPO') , linetype="dashed")+
+  geom_vline(aes(xintercept =as.Date('2020-09-01'), col='Fin del IFE') , linetype="dashed")+
+  scale_color_manual(name = 'Referencias:', values=c(ASPO = 'black',DISPO='green',
+                                                     'Fin del IFE' = 'red',
+                                                     Femenino = 'violet', 
+                                                     Masculino ='light blue'))
+```  
+  
+  
+  
+R nos permite también convertir en "interactivo" un gráfico con la funcion ggplotly() de la librerí poltly y es muy sencillo.
+1-Guardamos nuestro plot como objeto. Por ej: x
+2-Lo convertimos con la función ggplotly(x)
+```{r }
+plot_sube <- ggplot(FEM, aes(DIA_TRANSPORTE, Cantidad_total)) + 
+              geom_line(data = MASC,aes(y = Cantidad_total, colour = "Masculino")) +
+              geom_line(data = FEM,aes(y = Cantidad_total, colour = "Femenino"))+
+              labs(title = 'Movilidad diaria SUBE por Sexo en 2020',
+              x = 'Fecha',
+              y = 'Cantidad de viajes SUBE',
+              caption = 'Elaboracion propia en base a datos abiertos SUBE',
+              col = 'Sexo')
+```
+
+```{r }
+ggplotly(plot_sube, height = 500, width = 700)
+```
+
+Con html tools podemos descargar el plot en nuestra pc como html:  
+```{r warning= FALSE}
+  htmltools::save_html(
+  html = htmltools::as.tags(
+    x = plotly::toWebGL(plot_sube),
+    standalone = TRUE),
+  file = "plot_sube.html")
+
+```
+
+Salvemos el gráfico:
+```{r }
+ggsave('mi_grafico.png',width = 16, height = 8)
+
+```
+## GRAFICOS DE BARRAS
+  
+En primer lugar vamos a filtrar los valores vacíos:
+```{r }
+totales_sin_na <- filtro_totales %>% 
+  filter(GENERO == 'M' | GENERO == 'F') %>% 
+  filter(MOTIVO_ATSF != "")
+```
+
+```{r }
+descuentos_marzo <- totales_sin_na %>% 
+  filter(DIA_TRANSPORTE >= '2020-03-01' & DIA_TRANSPORTE <= '2020-03-31')
+```
+  
+Agrupamos por genero y tipo de descuento
+```{r warning=FALSE}
+descuentos_marzo_agrupado <- descuentos_marzo %>% 
+  group_by(MOTIVO_ATSF) %>% 
+  summarise(Total = sum(CANT_TRJ))
+```
+  
+Grafiquemos:
+```{r }
+ggplot(data = descuentos_marzo_agrupado) +
+  aes(x = MOTIVO_ATSF, y = Total) +
+  geom_bar(stat = 'identity')
+```
+  
+Como vemos, los textos del eje x se superponen. Podemos rotar las etiquetas como hicimos en el gráfico de las fechas o también podemos rotar directamente el gráfico con la función coord_flip()
+```{r }
+ggplot(data = descuentos_marzo_agrupado) +
+  aes(x = MOTIVO_ATSF, y = Total) +
+  geom_bar(stat = 'identity')+
+  coord_flip()
+```
+  
+Podemos ordenar las barras con la función reorder()
+```{r }
+ggplot(data = descuentos_marzo_agrupado) +
+  aes(x = reorder(MOTIVO_ATSF, Total), y = Total) +
+  geom_bar(stat = 'identity')+
+  coord_flip()
+```
+  
+De manera ascendente agregando '-' delante de la variable:
+```{r }
+ggplot(data = descuentos_marzo_agrupado) +
+  aes(x = reorder(MOTIVO_ATSF, -Total), y = Total) +
+  geom_bar(stat = 'identity')+
+  coord_flip()
+```
+  
+Volvamos a filtrar los viajes de marzo pero esta vez agrupando también por SEXO.
+```{r }
+descuentos_genero <- descuentos_marzo %>% 
+  group_by(MOTIVO_ATSF, GENERO) %>% 
+  summarise(Total = sum(CANT_TRJ))
+```
+  
+Ahora que tenemos una categoría, podemos diferenciar con 'fill'
+```{r }
+ggplot(data = descuentos_genero) +
+  aes(x = reorder(MOTIVO_ATSF, -Total), y = Total, fill = GENERO) +
+  geom_bar(stat = 'identity')+
+  coord_flip()
+```
+  
+Podemos separar las barras por categoría y agregar un borde a las barras:
+```{r }
+ggplot(data = descuentos_genero) +
+  aes(x = reorder(MOTIVO_ATSF, -Total), y = Total, fill = GENERO) +
+  geom_bar(stat = 'identity', 
+           position= position_dodge(), 
+           color = 'black')+
+  coord_flip()
+```
+  
+También podemos transformar los valores absolutos en porcentaje:
+```{r }
+descuentos <- totales_sin_na %>% 
+  group_by(MOTIVO_ATSF) %>% 
+  summarise(Total = sum(CANT_TRJ),
+            Varones_N = sum(CANT_TRJ[GENERO == 'M']),
+            Mujeres_N = sum(CANT_TRJ[GENERO == 'F']),
+            Varones = Varones_N/Total * 100,
+            Mujeres = Mujeres_N/Total * 100) %>% 
+  select(MOTIVO_ATSF, Mujeres, Varones) %>% 
+  pivot_longer(.,cols =  2:3, names_to = 'SEXO', values_to = 'Porcentaje' )
+```
+
+```{r }
+ggplot(data = descuentos) +
+  aes(x = MOTIVO_ATSF, y = Porcentaje, fill = SEXO) +
+  geom_bar(stat = "identity", color = 'black',
+           position = position_dodge())+
+  coord_flip()
+```
+  
+Agreguemos título:
+```{r }
+ggplot(data = descuentos) +
+  aes(x = MOTIVO_ATSF, y = Porcentaje, fill = SEXO) +
+  geom_bar(stat = "identity", color = 'black',
+           position = position_dodge())+
+  labs(title = 'Cantidad de viajes realizados con tarjeta SUBE con descuento en 2020')+
+  coord_flip()
+```
+  
+Agreguemos etiquetas en los ejes y fuente:
+```{r }
+ggplot(data = descuentos) +
+  aes(x = MOTIVO_ATSF, y = Porcentaje, fill = SEXO) +
+  geom_bar(stat = "identity", color = 'black',
+           position = position_dodge())+
+  labs(title = 'Cantidad de viajes realizados con tarjeta SUBE con descuento en 2020',
+       x = 'Tipo de descuento', fill = 'SEXO',
+       caption = 'Fuente: Elaboracion propia en base a datos abiertos SUBE 2020')+
+  coord_flip()
+```
+  
+¿Probamos agrupando el promedio de viajes por mes?
+Tenemos que transformar nuestra tabla una vez más. Lo vamos a hacer en dos pasos.
+1-Creamos una nueva columna con el nombre de los meses:
+```{r }
+x_por_mes <- Total_agrupado %>% 
+  mutate(FECHA = ymd(DIA_TRANSPORTE)) %>%
+  mutate(Mes = month(FECHA)) %>%
+  mutate(Mes = month.name[Mes]) %>% 
+  select(-(DIA_TRANSPORTE))
+
+head(x_por_mes)
+```
+  
+2-Agrupamos por mes, factoreamos la columna mes (para que lo ordene cronológicamente y no alfabéticamente), creamos la nueva columna de promedio mensual y la convertimos en número entero.
+```{r }
+x_por_mes_2 <- x_por_mes %>% 
+  group_by(Mes) %>% 
+  mutate( Mes = factor(Mes, levels = month.name) ) %>%
+  summarise(Promedio_mensual = mean(Cantidad)) %>% 
+  mutate(Promedio_mensual = as.integer(Promedio_mensual)) %>% 
+  arrange(Mes)
+```
+  
+Graficamos:
+```{r }
+ggplot(data = x_por_mes_2) +  
+  aes(y = Promedio_mensual, x = Mes, fill = Promedio_mensual) +  
+  geom_col(color = "black")
+```
+  
+Con "scale_fill_gradient()" podemos elegir un gradiente de colores:
+```{r }
+ggplot(data = x_por_mes_2) +  
+  aes(y = Promedio_mensual, x = Mes, fill = Promedio_mensual) +  
+  geom_col(color = "black")+
+  scale_fill_gradient(low = 'red',high = "yellow", name = 'Promedio mensual')
+```
+  
+Agregamos el título y las etiquetas:
+```{r }
+ggplot(data = x_por_mes_2) +  
+  aes(y = Promedio_mensual, x = Mes, fill = Promedio_mensual) +  
+  geom_col(color = "black")+
+  scale_fill_gradient(low = 'red',high = "yellow", name = 'Promedio mensual')+
+  labs(title='Cantidad de viajes promedio por mes con tarjeta SUBE',
+       subtitle = 'Año 2020',
+       y = 'Promedio mensual',
+       caption = 'Fuente: Base SUBE 2020')
+```
+  
+Podemos también agregar el promedio por sexo:
+Sumamos el total por sexo
+```{r }
+Total_agrupado <- filtro_totales %>% 
+  group_by(DIA_TRANSPORTE) %>% 
+  summarise(Cantidad = sum(CANT_TRJ),
+            FEM = sum(CANT_TRJ[GENERO == 'F']),
+            MASC = sum(CANT_TRJ[GENERO == 'M']))
+```
+  
+Agrupamos por mes igual que anteriormente agregando el promedio mensual por sexo:
+```{r }
+x_por_mes <- Total_agrupado %>% 
+  mutate(FECHA = ymd(DIA_TRANSPORTE)) %>% 
+  group_by(Mes = month(FECHA)) %>% 
+  mutate(Mes = month.name[Mes]) %>% 
+  select(-(DIA_TRANSPORTE))%>% 
+  summarise(Cantidad = mean(Cantidad),
+            FEM  = mean(FEM),
+            MASC = mean(MASC)) %>% 
+  mutate( Mes = factor(Mes, levels = month.name) ) %>% 
+  arrange(Mes)
+```
+  
+agregamos una columna que numere los meses ya que la necesitamos para las líneas.
+```{r }
+x_por_mes <- x_por_mes %>% 
+  mutate(mes_numero = c(1:12))
+```
+  
+Quitamos los decimales: 
+```{r }
+x_por_mes <- x_por_mes %>%
+  mutate(Cantidad = as.integer(Cantidad),
+         FEM = as.integer(FEM),
+         MASC = as.integer(MASC))
+```
+  
+Graficamos:
+```{r }
+ggplot(data = x_por_mes, aes(x = Mes)) +  
+  geom_col(aes(y = Cantidad, x = Mes, fill = Cantidad),color = "black")+
+  geom_line(data = x_por_mes,aes(x=mes_numero, y = FEM, color = 'F'))+
+  geom_line(data = x_por_mes,aes(x=mes_numero, y = MASC, color = 'M'))
+```
+  
+Agregamos gradiente, título y etiquetas:
+```{r }
+ggplot(data = x_por_mes, aes(x = Mes)) +  
+  geom_col(aes(y = Cantidad, x = Mes, fill = Cantidad),color = "black")+
+  geom_line(data = x_por_mes,aes(x=mes_numero, y = FEM, color = 'F'))+
+  geom_line(data = x_por_mes,aes(x=mes_numero, y = MASC, color = 'M'))+
+  scale_fill_gradient(low = 'white',high = "blue")+
+  labs(title='Cantidad de viajes por mes con tarjeta SUBE',
+       subtitle = 'Año 2020',
+       caption = 'Fuente: Base SUBE 2020',
+       color = 'Sexo')+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45))
+```
+  
+Con "size =" podemos cambiar el tamaño de la línea y scale_color_manual() nos permite elegir el color de la línea.
+```{r }
+ggplot(data = x_por_mes, aes(x = Mes)) +  
+  geom_col(aes(y = Cantidad, x = Mes, fill = Cantidad),color = "black")+
+  geom_line(data = x_por_mes,aes(x=mes_numero, y = FEM, color = 'F'), size = 1.5)+
+  geom_line(data = x_por_mes,aes(x=mes_numero, y = MASC, color = 'M'), size = 1.5)+
+  scale_fill_gradient(low = 'white',high = "blue")+
+  labs(title='Cantidad de viajes por mes con tarjeta SUBE',
+       subtitle = 'Año 2020',
+       caption = 'Fuente: Base SUBE 2020',
+       color = 'Sexo')+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45))+
+  scale_color_manual(values=c("#CC6666", "#9999CC"))
+```
+  
+Podemos convertilos en "interactivo" con la función ggplotly:
+```{r }
+grafico <- ggplot(data = x_por_mes, aes(x = Mes)) +  
+          geom_col(aes(y = Cantidad, x = Mes, fill = Cantidad),color = "black")+
+          geom_line(data = x_por_mes,aes(x=mes_numero, y = FEM, color = 'F'), size =    1.5)+
+          geom_line(data = x_por_mes,aes(x=mes_numero, y = MASC, color = 'M'), size = 1.5)+
+          scale_fill_gradient(low = 'white',high = "blue")+
+          labs(title='Cantidad de viajes por mes con tarjeta SUBE',
+               subtitle = 'Año 2020',
+               caption = 'Fuente: Base SUBE 2020',
+               color = 'Sexo')+
+          theme_minimal()+
+          theme(axis.text.x = element_text(angle = 45))+
+          scale_color_manual(values=c("#CC6666", "#9999CC"))
+
+ggplotly(grafico, width = 700, height = 500)
+```
+

@@ -1,0 +1,374 @@
+---
+title: "Manejo de Strings"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    #number_sections: true
+    theme: lumen
+---
+
+## Manejo de Strings
+
+```{r results = FALSE, warning = FALSE, message = FALSE}
+library(stringr)
+library(tidyverse)
+library(RVerbalExpressions)
+library(wordcloud2)
+library(tidytext)
+library(webshot)
+library("htmlwidgets")
+library(stringi)
+#webshot::install_phantomjs()
+```
+En esta clase veremos los distintos modos de manejar 'strings', es decir, cadenas de caracteres en R.
+
+## str_length
+Esta función nos permite saber el largo de un string contando los caracteres que lo forman.
+```{r}
+string <- 'esto es un string'
+str_length(string)
+
+```
+
+En este caso un total de 17 (los espacios se cuentan)
+
+
+## Sub string
+
+De un string, se puede tomar un fragmento del mismo con la funcion str_sub
+
+```{r str_sub}
+string_2 <- 'Houston, tenemos un problema'
+
+str_sub(string_2,1,7)
+str_sub(string_2,-8,-1)
+```
+
+## Manejo de espacios blancos
+
+Es muy comun que bases de datos tengan problemas con espacios blancos atras y adelante, dobles espacios blancos, etc. Para resolver esto, utilizamos la funcion str_trim
+
+```{r str_trim}
+
+string_3 <- c(' hola  ', 'esto  ', 'es ' , '    mas', 'comun ' , ' de lo que pensamos ')
+
+string_4 <- str_trim(string_3, side = 'both')
+print(string_4)
+# left / right
+```
+
+A veces requerimos de concatenar strings por distintos motivos. str_c es una funcion util para estos casos.
+
+```{r str_c}
+Sufijo <- 'Buenos Aires'
+Partidos <- c('Berazategui', 'Ituzaingo', 'Vicente Lopez','Moreno','Lanus','Quilmes')
+
+str_c(Partidos, Sufijo, sep= '-')
+
+```
+
+## Mayusculas y Minusculas
+```{r May}
+
+string_5 <- 'BUenos AirES'
+str_to_upper(string_5)
+
+```
+```{r May y Min}
+
+string_5 <- 'BUenos AirES'
+str_to_lower(string_5)
+
+```
+
+# DETECCIÓN DE PATRONES
+Las funciones siguientes nos permiten detectar patrones en cadenas de caracteres para luego operar sobre ellos.
+Vamos a cargar una base con twits descargados.
+```{r twits}
+twits <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/PS_tweets_FMI.csv') %>% 
+  select(2) 
+
+# Elijamos los primeros twits para hacer más simple el trabajo.
+
+primeros_twits <- twits$text[1:5]
+primeros_twits
+
+```
+
+## str_split
+Tal como lo indica su nombre, la función str_split() nos permite dividir un string en diferentes elementos según el separador que elijamos.
+Tomemos tan solo el 1er twit para dividirlo por espacios, es decir: ' '
+```{r }
+
+twits_separados <- str_split(primeros_twits, pattern = " ")
+twits_separados[[1]]
+```
+¿Qué obtuvimos? Una lista, con listas adentro. La lista mayor, contiene todos los twits y cada twit está en formato lista.
+A su vez, cada palabra es un elemento de la lista.
+Un poco confuso ¿no? Tratemos de verlo accediendo a  los elementos.
+```{r listas}
+# twits_separados es nuestra "lista de listas".
+# Si queremos acceder al 1er twit, tenemos que hacerlo como hacemos normalmente en las listas.
+
+twits_separados[[1]]
+twits_separados[[2]]
+```
+Ahora bien, para acceder a cada string dentro del twit lo hacemos utilizando [[1]][1]. Veamos.
+```{r listas 2}
+# Primera palabra del 1er twit.
+twits_separados[[1]][1]
+
+
+```
+
+```{r listas 3}
+# Quinta palabra del 4rto twit y así...
+
+twits_separados[[4]][5]
+```
+## str_replace()
+Esta función nos permite reemplazar un patrón en el string por otro patrón propio.
+Probemos con el #
+```{r replace}
+# str_replace reemplaza el patrón cuando el twit empieza con # mientras que str_replace_all() reemplaza todas las ocurrencias.
+str_replace(primeros_twits, pattern = '#', replacement = ' ')
+
+```
+```{r }
+str_replace_all(primeros_twits, pattern = '#', replacement = ' ')
+```
+
+## str_extract()
+Este sería el caso contrario a str_replace(), con esta función nos quedamos tan solo con el patrón que propusimos.
+```{r extract}
+# Al igual que en replace, tenemos la función str_extract_all()
+str_extract(primeros_twits, pattern = 'FMI')
+```
+```{r }
+str_extract_all(primeros_twits, pattern = 'FMI')
+```
+## str_detect()
+Esta función detecta un patrón que le indicamos en un corpus de string devolviendo verdadero / falso
+```{r }
+str_detect(primeros_twits, pattern = 'Alberto')
+#Como vemos en el resultado solo el 2do twit menciona a Alberto
+
+```
+En un listado más grande, nos puede servir para filtrar los twits que contengan palabras que nos interesan. Probemos con el listado completo (más de 1600 twits)
+```{r detect2}
+twits_alberto <- twits %>% 
+  filter(str_detect(string = text, pattern = 'Alberto'))
+nrow(twits_alberto)
+# Hay 86 twits de la lista que mencionan a Alberto
+```
+Recordemos que R es un lenguaje 'case sensitive', es decir que cuando buscamos el patrón, lo detecta EXACTAMENTE como se lo marcamos, si hay una mayúscula o minúscula no lo detecta. Podemos mejorar nuestra búsqueda con el símbolo | (or)
+```{r detect3}
+
+twits_alberto <- twits %>% 
+  filter(str_detect(string = text, pattern = 'Alberto|alberto|alferdez'))
+nrow(twits_alberto) # número de filas que tiene el objeto
+
+```
+## Anchors
+Las anclas son herramientas para definir si queremos detectar un string que comienza o termina de una manera específica.
+^ es el símbolo que indica el principio del string
+$ es el símbolo que indica el final del string.
+Busquemos ahora los twits que comienzan con #AcuerdoconelFMI
+```{r anclas}
+
+acuerdo_hashtag <- twits %>% 
+  filter(str_detect(text, pattern = '^#AcuerdoconelFMI'))
+head(acuerdo_hashtag$text)
+
+```
+Busquemos ahora los twits que terminan con el #AcuerdoconelFMI
+```{r terminan}
+
+terminan_hashtag <- twits %>% 
+  filter(str_detect(text, pattern = '#AcuerdoconelFMI$'))
+
+```
+
+
+## Ngrams
+Ngram es la manera que se utiliza para hacer análisis de texto.
+N refiere a una cantidad posible y gram son las palabras.
+Por ejemplo: DEUDA es un unigram
+DEUDA EXTERNA es un bigram
+DEUDA EXTERNA NACIONAL es un trigram y así...
+En este apartado vamos a utilizar la base de twits con el #AcuerdoconelFMI para crear unigrams y bigrams.
+
+```{r }
+twits <- twits %>% 
+  rename(txt = 1)
+```
+Existe un proceso que se llama "tokenizar". Esto significa dividir el texto obteniendo unidades mínimas llamadas "tokens". En este caso, palabras.
+Con la función "unnest_tokens" obtenemos las palabras tokenizadas.
+
+```{r }
+tokens <- twits %>% 
+  unnest_tokens(output = word, input = txt)
+
+head(tokens)
+```
+Ahora bien, lo que necesitamos es saber cuántas veces se repite cada palabra.
+Para eso, agregamos la función count() y la ordenamos de manera descendente con el parámetro sort.
+```{r }
+tokens_2 <- twits %>% 
+  unnest_tokens(output = word, input = txt) %>% 
+  count(word, sort = TRUE)
+
+head(tokens_2)
+```
+Ya tenemos ordenadas por repetición las palabras de nuestra base. Sin embargo, no nos dicen mucho. Es normal que obtengamos este tipo de lista ya que las proposiciones y pronombres son las palabras que más se repiten.
+Por lo tanto, tenemos que realizar varios filtrados a la base "limpiarla" de las cosas que no nos interesan.
+
+## Proceso de limpieza
+Lo más complejo para hacer que el resultado sea exitoso es el proceso de limpieza del corpus de texto 
+
+Para detectar tipos de caracteres específicos R tiene códigos que refieren a ellos:
+
+![Códigos:](/Users/diegopacheco/OneDrive - sociales.UBA.ar/Curso Introduccion a R CS/Clase 4/CaracteresR.png)
+
+Para empezar creamos 2 objetos.
+hashtag_mencion indica "todas las palabras que empiezan con @ o # y todo lo que le sigue hasta llegr a un espacio".
+webs es la misma idea. Todo lo que empieza con 'http' hasta un espacio (la idea es reconocer usuario, temas y urls)
+  
+````{r Limpieza}
+hasthag_mencion <- "(@|#)([^ ]*)" # todo lo que comienza con @ o # hasta que llegue a un espacio
+
+webs <- rx() %>% 
+  rx_find('http')%>% 
+  rx_anything_but(value = ' ') # todo lo que empiece con # hasta que llegue un espacio
+````
+
+Utilizamos str_replace_all() para eliminar los # y @ 
+```{r }
+twits_2 <- twits %>% 
+  mutate(txt = str_replace_all(txt, hasthag_mencion, ''))
+```
+
+Hacemos el mismo proceso para eliminar las urls
+```{r }
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_replace_all(txt, webs, ''))
+```
+
+Pasamos todas las palabras a minúscula (recuerden que R es case sensitive por lo que "Alberto" es una palabra distinta de "alberto")
+```{r }
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_to_lower(txt))
+```
+
+Quitamos las palabras alfanuméricas (probablemente restos de urls)
+```{r }
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_replace_all(txt, "[^[:alnum:][:blank:]]", ''))
+```
+
+Eliminamos todos los números
+```{r }
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_replace_all(txt, "[[:digit:]]", ''))
+```
+
+## Stop Words
+Las llamadas "stop words" son palabras que no se considera que tengan contenido propiamiente sino que son palabras que sirven para darle coherencia a las frases.
+Preposiciones, pronombres, artículos, conjunciones etc.
+Vamos a cargar el listado de Stop words.
+```{r }
+stop_words <- read.delim('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/stop_words.csv')
+
+```
+Entonces ahora aplicamos la misma función que antes para obtener el listado de las palabras más utilizadas, luego de haber limpiado la base de texto.
+En este caso, agregamos un "anti join". Como indica su nombre, es lo contrario a join. Es decir que va a eliminar todo lo que coincida con lo que se presenta en stop words.
+```{r }
+twits_2 %>% 
+  unnest_tokens(output = word, input = txt) %>%
+  na.omit() %>% 
+  anti_join(stop_words) %>% 
+  count(word, sort = TRUE) %>% 
+  head()
+```
+Como vemos, obtuvimos una lista de palabras mucho más coherente que la primera vez que tokenizamos la base.
+Cortemos ahora entonces por las 50 palabras más utilizadas.
+```{r }
+unigram <- twits_2 %>% 
+  unnest_tokens(output= word, input= txt, token = "ngrams", n = 1) %>%
+  na.omit() %>%  # omitimos las líneas vacías
+  anti_join(stop_words) # eliminamos las stop words
+```
+```{r }
+unigram <- unigram %>% 
+  count(word, sort = TRUE) %>%  # conteo y ordenado
+  slice(1:50) # nos quedamos con las 1eras 50 palabras
+
+head(unigram)
+```
+## Bag of words
+Ya tenemos nuestra base de unigrams. Ahora con la función wordcloud2() podemos generar nuestra nube de palabras.
+```{r }
+wordcloud2(unigram)
+```
+
+Podemos salvar el objeto como html guardando primero la nube de palabras en un objeto:
+```{r }
+grafico <- wordcloud2(unigram)
+
+saveWidget(grafico,"unigram_fmi.html",selfcontained = F)
+```
+O guardarlo como imagen:
+```{r }
+webshot("unigram_fmi.html","unigram_fmi.png", delay =5, vwidth = 480, vheight=480)
+```
+
+Si bien obtuvimos las palabras más utilizadas, crear bigrams resulta de utilidad para saber si las palabras nombradas con más frecuencia tienen un carácter positivo o negativo.
+Si la palabra "Carlos" es la más frecuente, no es lo mismo "Carlos campeón" que "Carlos perdedor".
+Creemos entonces nuestra base de bigrams.
+
+En primer lugar volvemos a utilizar la función "unnest_tokens" pero esta vez le indicamos que la cantidad de ngrams será 2.
+Esto nos va a dar la base separada cada 2 palabras.
+```{r }
+bigrams <- twits_2 %>% 
+  unnest_tokens(word, txt, token = "ngrams", n = 2) %>%
+  na.omit()
+```
+
+Con la función separate, separamos los bigrams en 2 columnas y luego eliminamos las stop words con el anti join
+```{r }
+bigrams <-  bigrams %>% 
+  separate(word, c("word1", "word2"), sep = " ") %>% 
+  anti_join(., stop_words, by= c("word1" = "word")) %>% 
+  anti_join(., stop_words, by= c("word2" = "word"))
+```
+
+Con la función "unite" creamos una nueva variable llamada "word" que surge de la unión entre word1 y word2.
+Utilizamos count para contar la cantidad de veces que se presentan los bigrams y ordenamos con sort = TRUE.
+slice() corta el data frame por filas. Nos vamos a quedar los 20 bigrams más frecuentes.
+```{r }
+bigrams <-  bigrams %>% 
+  unite(word,word1, word2, sep = " ") %>% 
+  count(word, sort = TRUE) %>% 
+  slice(1:20)
+
+head(bigrams)
+```
+
+Otro modo de hacerlo anidado:
+```{r }
+
+bigrams <- twits_2 %>% 
+  unnest_tokens(word, txt, token = "ngrams", n = 2) %>%
+  na.omit() %>% 
+  separate(word, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>% 
+  unite(word,word1, word2, sep = " ") %>% 
+  count(word, sort = TRUE) %>% 
+  slice(1:20)
+
+head(bigrams)
+```

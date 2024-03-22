@@ -1,0 +1,367 @@
+---
+title: "Clase 2 - Tidyverse"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    #number_sections: true
+    theme: lumen
+---
+## TIDYVERSE
+En primer lugar instalamos y cargamos la librería.
+```{r results = FALSE, warning = FALSE, message = FALSE}
+# install.packages('tidyverse')
+library(tidyverse)
+library(RCurl)
+library(openxlsx)
+```
+
+## FUNCIONES
+Vamos a hacer un paneo general por las funciones principales de tidyverse.
+En primer lugar, cargamos una base de datos en csv (en este caso, base de datos del programa POTENCIAR trabajo)
+```{r }
+
+base <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/potenciar-trabajo-titulares-activos.csv')
+# Tal como vemos, se vuelve necesario agregar el encoding de la base ya que de lo contrario, vemos de manera extraña los caracteres con tildes.
+base <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/potenciar-trabajo-titulares-activos.csv', encoding = "UTF-8")
+
+```
+
+Ya tenemos la base cargada. Podemos usar algunas funciones para comprender nuestra base.
+
+## Dim, unique, colnames, summary
+```{r select, rename }
+# La funcion dim() nos presenta las dimensiones de nuestro data frame:
+# filas columnas
+dim(base)
+
+# Veamos los nombres de las columnas:
+colnames(base)
+
+# Veamos los valores unicos que se presentan en las provincias:
+unique(base$provincia)
+
+# Veamos algunos valores básicos de la tabla:
+summary(base)
+```
+Empecemos a trabajar con la base
+```{r  }
+head(base)
+```
+
+## Filter
+Vemos que la base tiene información de todas las provincias. Supongamos que nos interesa saber tan solo la información de Cordoba. Utilizamos la función filter()
+para filtrar los resultados.
+```{r }
+# Creamos un nuevo objeto llamado Cordoba con los resultados de nuestro filtro.
+
+Cordoba <- base %>% 
+  filter(provincia == 'Córdoba')
+
+```
+
+## Select
+El comando %>%  o 'pipe' se utiliza para anidar funciones en una misma línea de código, de esta manera podemos transformar nuestra base de datos con varias funciones en una misma línea de código.
+Las columnas que tienen 'id' no nos interesan así que podemos deshacernos de ellas.
+```{r }
+# Podemos hacerlo de varias maneras. Una es 'restando' columnas con select
+Cordoba_sin_id <- Cordoba %>% 
+  select(-(c('provincia_id','departamento_id','municipio_id')))
+
+colnames(Cordoba_sin_id)
+
+# Otra puede ser con los numeros de columna:
+
+Cordoba_sin_id_2 <- Cordoba %>% 
+  select(-(c(3,5,7)))
+
+# Otra puede ser seleccionando las columnas que queremos:
+
+Cordoba_sin_id_3 <- Cordoba %>% 
+  select('periodo','provincia','departamento','municipio','titulares')
+
+# Otra puede ser seleccionando las columnas por su orden:
+
+Cordoba_sin_id_4 <- Cordoba %>% 
+  select(1,2,4,6,8)
+
+```
+## Rename
+Tidyverse nos permite también cambiar el nombre de las columnas con la función rename()
+
+```{r }
+# Cambiemos la columna 'titulares' por 'Cantidad_de_titulares'
+
+Cordoba_sin_id <- Cordoba_sin_id %>%
+  rename('Cantidad_de_titulares' = titulares)
+
+```
+
+## Mutate
+La función mutate() es muy útil y necesaria. Nos permite crear nuevas columnas a partir de columnas existentes ya sea realizando operaciones aritméticas o cambiando la clase del dato que contiene.
+```{r }
+# Empezemos por hacer una prueba multiplicando por 2 los titulares:
+Cordoba_doble <- Cordoba %>% 
+  mutate(titulare_x_2 = titulares * 2)
+# Creamos una nueva columna en la cuál está el número de titulares * 2
+head(Cordoba_doble)
+
+```
+Veamos un problema típico en las bases de datos: Las fechas
+```{r }
+# ¿Qué clase tiene la columna 'periodo'?
+class(Cordoba$periodo)
+```
+¡Caramba! Nosotros necesitamos que sea de tipo fecha. 
+Utilizaremos la función mutate() para corregirlo.
+Para eso, necesitamos instalar y cargar el paquete 'lubridate'
+```{r }
+# install.packages('lubridate')
+library(lubridate)
+Cordoba <- Cordoba %>% 
+  mutate(periodo =  ymd(periodo))
+class(Cordoba$periodo)
+```
+¡Excelente!
+Ahora podemos trabajar las fechas como corresponde. Hagamos una prueba:
+```{r }
+Cordoba$periodo[1]
+
+```
+
+```{r }
+Cordoba$periodo[1] + days(1)
+```
+
+## Arrange
+Ordenar una tabla. Para ordenar una tabla la funcioón arrange() resulta de mucha utilidad.
+```{r }
+# Ordenemos por cantidad de titulares
+Cordoba_ordenado <- Cordoba %>% 
+  arrange(titulares)
+head(Cordoba_ordenado)
+
+```
+Como se puede ver, nos ordena la columna de manera ascendente. Si queremos que lo haga de manera descendente, podemos anidar la función desc() dentro de arrange()
+```{r }
+
+Cordoba_ordenado <- Cordoba_ordenado %>% 
+  arrange(desc(titulares))
+head(Cordoba_ordenado)
+```
+## Summarise
+La función summarise() nos permite crear nuevas tablas con variables resumen tales como promedios, sumas, promedios ponderados etc.
+```{r }
+
+base %>% 
+summarise(titulares_promedio = mean(titulares))
+
+```
+## Group by
+La función group_by() nos permite dividir variables de manera agrupada y funciona muy bien junto con la función summarise(). Esta combinación permite crear nuevas tablas a partir de los datos originales. 
+Veamos un ejemplo agrupando titulares por provincia.
+```{r }
+
+datos_provincias <- base %>% 
+  mutate(periodo = ymd(periodo)) %>% 
+  group_by(provincia, periodo) %>% 
+  summarise(Cantidad_titulares = sum(titulares))
+
+datos_provincias$mes <- months(as.Date(datos_provincias$periodo))
+
+
+head(datos_provincias)
+
+```
+Como podemos ver, nos creó una tabla nueva, ordenada alfabéticamente.
+Podemos utilizar arrange para que quede ordenada por cantidad de titulares.
+```{r }
+
+datos_provincias <- datos_provincias %>% 
+  arrange(desc(Cantidad_titulares))
+head(datos_provincias)
+
+
+```
+Vimos que existe un valor vacío '' en las filas. Vamos a quitarlo.
+```{r }
+
+datos_provincias <- datos_provincias %>% 
+  filter(provincia != '')
+
+
+```
+
+## LEFT JOIN
+Los joins se utilizan para unir bases de datos. Existen distintos tipos de joins pero el más utilizado es el "left_join". 
+En este acosación lo utilizaremos para calcular los contagios c/100mil habitantes por provincia.
+```{r }
+
+contagios <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/catorce_dias_contagios.csv')
+contagios <- contagios %>% 
+  select(-(1))
+
+poblacion <- read.xlsx('https://github.com/pachedi/INTRO_R_CS/blob/main/poblacion_provincias.xlsx?raw=true')
+
+```
+Tenemos un problema (muy común). CABA está escrito de manera distinta: CABA vs Ciudad de Buenos Aires. Al hacer un join, es necesario que los valores sean LOS MISMOS. 
+Para eso unificaremos esos valores ANTES de hacer el join.
+```{r }
+
+poblacion$provincias[1] = 'CABA'
+
+base_unida <- poblacion %>% 
+  left_join(., contagios, by = c('provincias'='residencia_provincia_nombre'))
+
+
+base_unida
+```
+Ya tenemos la base unida, ahora podemos saber la cantidad de contagios cada 100 mill hab
+```{r }
+# Mejoremos los nombres de las columas para que sean más claros
+base_unida <- base_unida %>% 
+  rename(Cant_contagios = Total_14_dias)
+
+
+base_unida <- base_unida  %>% 
+  mutate(Contagios_100_hab = Cant_contagios/poblacion*100000) %>% 
+  arrange(desc(Contagios_100_hab))
+
+base_unida
+```
+## PIVOT WIDER / LONGER
+Pivot wider y pivot longer sirven para transformar un data frame según nuestras necesidades.
+Wider: nos permite cambiar valores a columnas.
+```{r }
+
+wider <- base_unida %>% 
+  select(1,4) %>% 
+  pivot_wider(names_from = 'provincias', values_from = 'Contagios_100_hab')
+
+head(wider)
+```
+
+Pivot_longer() se utiliza para el proceso contrario, convertir columnas en filas
+```{r }
+
+longer <- wider %>% 
+  pivot_longer(cols = 1:ncol(.), names_to = 'Provincias', values_to = 'X_100_Hab')
+
+head(longer)
+```
+## TASAS DEL MERCADO LABORAL
+Con todas estas funciones ahora estamos en condiciones de calcular las tasas del mercado laboral a partir de la base individual EPH
+TASA DE OCUPACION
+```{r }
+# Cargamos la base del 1er trimestre de 2020
+
+base_1t_2020 <- read.xlsx('https://github.com/pachedi/INTRO_R_CS/blob/main/usu_individual_T120.xlsx?raw=true')
+base_1t_2020[1:5,1:10]
+
+```
+La tasa de ocupación se calcula obteniendo el cociente de la población total y la población empleada.
+```{r }
+Ocupados <- base_1t_2020 %>% 
+  summarise(Total_poblacion = sum(PONDERA),
+            Empleados = sum(PONDERA[ESTADO == 1]),
+            Tasa_ocupacion = Empleados / Total_poblacion)
+
+Ocupados
+```
+Tal como podemos ver, según la EPH, el 42% de la población está ocupada.
+Probemos ahora de hacer el mismo calculo con la base EPH del 4 trimestre de 2020 para comparar las tasas entre el 1er y 4rto trimestre:
+```{r }
+base_4t_2020 <- read.xlsx('https://github.com/pachedi/INTRO_R_CS/blob/main/usu_individual_T420.xlsx?raw=true')
+
+base_4t_2020[1:5,1:10]
+```
+Calculamos la tasa de empleo para el 4to trimestre:
+```{r }
+Ocupados_4t <- base_4t_2020 %>% 
+  summarise(Total_poblacion = sum(PONDERA),
+            Empleados = sum(PONDERA[ESTADO == 1]),
+            Tasa_ocupacion = Empleados / Total_poblacion)
+
+Ocupados_4t
+```
+## BIND ROWS
+Tenemos los valores en objetos separados. Existe una función para apilar objetos llamada bind_rows. Es importante tener en cuenta que los objetos a apilar tienen que tener los *MISMOS NOMBRES* de columnas. De lo contrario se creará una nueva columna en el data frame nuevo apilado.
+Probemos.
+```{r }
+
+ocupados_trimestral <- bind_rows(Ocupados, Ocupados_4t)
+
+ocupados_trimestral
+
+```
+## TASAS DE ACTIVIDAD Y DESEMPLEO
+Probemos entonces de agregar ahora a este código, las tasas de actividad y desempleo agrupando por sexo.
+Algunas definiciones:
+PEA (Población económicamente activa) = Ocupados + Desocupados
+Tasa de actividad = PEA / Poblacion
+Tasa de empleo = Ocupados / Poblacion
+Tasa de desempleo = Desocupados / PEA
+```{r }
+# Podemos también filtrar la base por edad
+
+tasas_mercado_laboral_1t <- base_1t_2020 %>% 
+  filter(CH06 %in% 18:70) %>% 
+  group_by(CH04) %>% 
+  summarise(Poblacion = sum(PONDERA),
+            Ocupados = sum(PONDERA[ESTADO == 1]),
+            Desocupados = sum(PONDERA[ESTADO == 2]),
+            PEA = Ocupados + Desocupados,
+            Tasa_de_actividad = PEA / Poblacion,
+            Tasa_de_empleo = Ocupados / Poblacion,
+            Tasa_de_desempleo = Desocupados / PEA)
+
+tasas_mercado_laboral_1t
+
+
+```
+Hagamos los mismos cálculos para la 4rto trimestre:
+```{r }
+tasas_mercado_laboral_4t <- base_4t_2020 %>% 
+  filter(CH06 %in% 18:70) %>% 
+  group_by(CH04) %>% 
+  summarise(Poblacion = sum(PONDERA),
+            Ocupados = sum(PONDERA[ESTADO == 1]),
+            Desocupados = sum(PONDERA[ESTADO == 2]),
+            PEA = Ocupados + Desocupados,
+            Tasa_de_actividad = PEA / Poblacion,
+            Tasa_de_empleo = Ocupados / Poblacion,
+            Tasa_de_desempleo = Desocupados / PEA)
+
+tasas_mercado_laboral_4t
+```
+
+Cambiemos el código de sexo por Varones/Mujeres y una columna que indique el trimestre.
+```{r }
+
+tasas_mercado_laboral_1t <- tasas_mercado_laboral_1t %>% 
+  mutate(SEXO = case_when(CH04 == 1 ~'Varones',
+                          CH04 == 2 ~ 'Mujeres'),
+         Trimestre = 1) %>% 
+  select(-(CH04)) 
+
+tasas_mercado_laboral_4t <- tasas_mercado_laboral_4t %>% 
+  mutate(SEXO = case_when(CH04 == 1 ~'Varones',
+                          CH04 == 2 ~ 'Mujeres'),
+         Trimestre = 4) %>% 
+  select(-(CH04))
+                                                
+```
+Apilemos las bases para comparar mejor.
+```{r }
+
+tasas_mercado_t_1y4 <-
+  bind_rows(tasas_mercado_laboral_1t,tasas_mercado_laboral_4t)
+
+tasas_mercado_t_1y4
+                                                
+```
+
+
+

@@ -1,0 +1,4 @@
+"0","base2 <- base %>% "
+"0","  mutate(Orador = NA)"
+"0",""
+"0",""

@@ -1,0 +1,4 @@
+"0",""
+"0","base2 <- base2 %>% "
+"0","  mutate(txt = str_trim(txt, side=""both""))"
+"0",""

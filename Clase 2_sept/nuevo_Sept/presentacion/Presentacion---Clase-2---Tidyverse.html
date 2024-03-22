@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Introducción a Tidyverse</title>
+    <meta charset="utf-8" />
+    <script src="libs/header-attrs-2.9/header-attrs.js"></script>
+    <link href="libs/remark-css-0.0.1/ninjutsu.css" rel="stylesheet" />
+    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Introducción a Tidyverse
+
+---
+
+
+
+
+
+
+class: middle, center
+# ¿Qué es [Tidyverse](https://www.tidyverse.org/)?
+
+---
+
+class: middle, center
+
+#### `Tidyverse` es una colección de paquetes de R, diseñados para la ciencia de datos. 
+
+---
+
+class: middle, center
+
+#### Algunas librerías que contiene `Tidyverse`
+&lt;img src="tidyverse-icons.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+---
+
+
+## Procesos de ETL:
+
+* Tidyverse provee las herramientas básicas para realizar operaciones en Data Sciences:
++ `Extract` (extraer información)  
++ `Transform` (transformar los data frames a partir de las funciones que proveen las distintas librerías)  
++ `Load` (cargar nuevamente esas bases extraídas y transformadas)  
+
+&lt;img src="ETL-Process.jpeg" width="50%" style="display: block; margin: auto;" /&gt;
+---
+## Funciones del paquete dplyr:
+
+&lt;br&gt;
+
+| __Función__   | __Acción__ |
+| :---          | ---:   |
+| `select()`    | *selecciona o descarta variables*|
+| `filter()`    | *selecciona filas*|
+| `mutate()`    | *crea / edita variables*|
+| `rename()`    | *renombra variables*|
+| `group_by()`  | *agrupa en funcion de una o más variables*|
+| `summarise()` | *genera una tabla de resúmen*|
+
+---
+
+## __Pipe__
+***
+
+El "pipe" será es el comando por el cual podemos anidar funciones en una misma línea de código:  
+`%&gt;%`  
+Y se muestra presionando __control + shift + m__ 
+
+---
+
+class: middle, center
+
+# __select()__
+***
+#### _Elije o descarta columnas de una base de datos_
+
+---
+class: middle, left
+
+La función se ejecuta de la siguiente manera:
+```r 
+select(data_frame,
+        columna1,columna2, etc...)
+```
+&lt;br&gt;
+
+Otro modo es el siguiente:
+```r 
+data_frame %&gt;% 
+  select(columna1,columna2, etc...)
+```
+Al pararnos sobre el data frame antes de usar la función R ya no necesita que le aclaremos dónde va a operar, por lo tanto podemos obviar el argumento del data frame.
+
+---
+## Ejemplo de select()
+
+Primero cargamos una base de datos (vacunación en caba COVID 19):
+
+```r
+# fuente: https://data.buenosaires.gob.ar/dataset/plan-de-vacunacion-covid-19
+df &lt;- read.csv("dataset_total_vacunas.csv")
+```
+--
+&lt;br&gt;
+
+La funcion `colnames()` nos va a mostrar los _nombres_ de las columnas del data frame:
+
+
+```r
+colnames(df)
+```
+
+```
+  [1] "FECHA_ADMINISTRACION" "GRUPO_ETARIO"         "GENERO"              
+  [4] "VACUNA"               "TIPO_EFECTOR"         "DOSIS_1"             
+  [7] "DOSIS_2"              "ID_CARGA"             "DOSIS_3"
+```
+
+---
+Sabiendo los nombres de las columnas, podemos crear un nuevo data frame que contenga solo las columnas que nos interesa trabajar:
+
+
+```r
+df_recortado &lt;- df %&gt;% 
+  select("FECHA_ADMINISTRACION", "GENERO","GRUPO_ETARIO","TIPO_EFECTOR")
+```
+
+Con la función `head()` podemos ver las primeras filas del df:
+
+```r
+head(df_recortado)
+```
+
+```
+    FECHA_ADMINISTRACION GENERO GRUPO_ETARIO     TIPO_EFECTOR
+  1   29JAN2021:00:00:00      M      31 a 40          Público
+  2   29JAN2021:00:00:00      M      31 a 40 Público nacional
+  3   29JAN2021:00:00:00      F      41 a 50          Privado
+  4   29JAN2021:00:00:00      F      41 a 50          Público
+  5   29JAN2021:00:00:00      F      41 a 50 Público nacional
+  6   08JAN2021:00:00:00      F      41 a 50 Público nacional
+```
+
+---
+class: middle, center
+
+##Otra forma de selecionar es a través de la numeración de las columnas:
+
+---
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* select(1:4)
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik
+  12   08JAN2021:00:00:00      51 a 60      F Sputnik
+  13   08JAN2021:00:00:00      51 a 60      M Sputnik
+  14   08JAN2021:00:00:00      51 a 60      M Sputnik
+  15   08JAN2021:00:00:00      51 a 60      M Sputnik
+  16   08JAN2021:00:00:00      61 a 70      F Sputnik
+  17   08JAN2021:00:00:00      61 a 70      M Sputnik
+  18   08JAN2021:00:00:00      61 a 70      M Sputnik
+  19   09JAN2021:00:00:00   30 o menos      F Sputnik
+  20   09JAN2021:00:00:00   30 o menos      F Sputnik
+  21   09JAN2021:00:00:00   30 o menos      F Sputnik
+  22   09JAN2021:00:00:00   30 o menos      M Sputnik
+  23   09JAN2021:00:00:00   30 o menos      M Sputnik
+  24   09JAN2021:00:00:00   30 o menos      M Sputnik
+  25   09JAN2021:00:00:00      31 a 40      F Sputnik
+   [ reached 'max' / getOption("max.print") -- omitted 27879 rows ]
+```
+]]
+
+---
+class: middle, center
+
+## En la selección, damos el orden de las columnas
+&lt;br&gt;
+## También podemos utilizar vectores para seleccionar columnas:
+
+---
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* select(c(1,4,6))
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION  VACUNA DOSIS_1
+  1    29JAN2021:00:00:00 Sputnik       4
+  2    29JAN2021:00:00:00 Sputnik       0
+  3    29JAN2021:00:00:00 Sputnik       0
+  4    29JAN2021:00:00:00 Sputnik      15
+  5    29JAN2021:00:00:00 Sputnik       0
+  6    08JAN2021:00:00:00 Sputnik      14
+  7    08JAN2021:00:00:00 Sputnik      18
+  8    08JAN2021:00:00:00 Sputnik     169
+  9    08JAN2021:00:00:00 Sputnik       4
+  10   08JAN2021:00:00:00 Sputnik      14
+  11   08JAN2021:00:00:00 Sputnik     182
+  12   08JAN2021:00:00:00 Sputnik       8
+  13   08JAN2021:00:00:00 Sputnik      16
+  14   08JAN2021:00:00:00 Sputnik     102
+  15   08JAN2021:00:00:00 Sputnik       5
+  16   08JAN2021:00:00:00 Sputnik       3
+  17   08JAN2021:00:00:00 Sputnik       4
+  18   08JAN2021:00:00:00 Sputnik       1
+  19   09JAN2021:00:00:00 Sputnik       3
+  20   09JAN2021:00:00:00 Sputnik      24
+  21   09JAN2021:00:00:00 Sputnik      13
+  22   09JAN2021:00:00:00 Sputnik       1
+  23   09JAN2021:00:00:00 Sputnik      10
+  24   09JAN2021:00:00:00 Sputnik       3
+  25   09JAN2021:00:00:00 Sputnik       4
+  26   09JAN2021:00:00:00 Sputnik      81
+  27   09JAN2021:00:00:00 Sputnik      17
+  28   09JAN2021:00:00:00 Sputnik       9
+  29   09JAN2021:00:00:00 Sputnik      50
+  30   09JAN2021:00:00:00 Sputnik      11
+  31   14FEB2021:00:00:00 Sputnik       0
+  32   14FEB2021:00:00:00 Sputnik       1
+  33   14FEB2021:00:00:00 Sputnik       0
+   [ reached 'max' / getOption("max.print") -- omitted 27871 rows ]
+```
+]]
+
+---
+
+class: middle, center
+
+# __filter()__
+
+***
+
+#### _Filtra casos (filas) de una base de datos en función de una o más variables_
+
+Recordemos que en R Base filtrábamos de la siguiente manera:
+
+```r
+df$variable[df$variable == 'categoria']
+```
+---
+
+- En `tidyverse`:
+```r
+df %&gt;% 
+  filter(variable == 'categoria')
+```
+---
+
+Supongamos que queremos quedarnos sólo con los efectores públicos que aplicaron vacunas contra Covid-19 en CABA:
+
+---
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* select(2:5)
+```
+]]
+.column[.content[
+
+```
+     GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR
+  1       31 a 40      M Sputnik          Público
+  2       31 a 40      M Sputnik Público nacional
+  3       41 a 50      F Sputnik          Privado
+  4       41 a 50      F Sputnik          Público
+  5       41 a 50      F Sputnik Público nacional
+  6       41 a 50      F Sputnik Público nacional
+  7       41 a 50      M Sputnik          Privado
+  8       41 a 50      M Sputnik          Público
+  9       41 a 50      M Sputnik Público nacional
+  10      51 a 60      F Sputnik          Privado
+  11      51 a 60      F Sputnik          Público
+  12      51 a 60      F Sputnik Público nacional
+  13      51 a 60      M Sputnik          Privado
+  14      51 a 60      M Sputnik          Público
+  15      51 a 60      M Sputnik Público nacional
+  16      61 a 70      F Sputnik          Público
+  17      61 a 70      M Sputnik          Público
+  18      61 a 70      M Sputnik Público nacional
+  19   30 o menos      F Sputnik          Privado
+  20   30 o menos      F Sputnik          Público
+  21   30 o menos      F Sputnik Público nacional
+  22   30 o menos      M Sputnik          Privado
+  23   30 o menos      M Sputnik          Público
+  24   30 o menos      M Sputnik Público nacional
+  25      31 a 40      F Sputnik          Privado
+   [ reached 'max' / getOption("max.print") -- omitted 27879 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  select(2:5) %&gt;%  
+* filter(TIPO_EFECTOR == 'Público')
+```
+]]
+.column[.content[
+
+```
+     GRUPO_ETARIO GENERO  VACUNA TIPO_EFECTOR
+  1       31 a 40      M Sputnik      Público
+  2       41 a 50      F Sputnik      Público
+  3       41 a 50      M Sputnik      Público
+  4       51 a 60      F Sputnik      Público
+  5       51 a 60      M Sputnik      Público
+  6       61 a 70      F Sputnik      Público
+  7       61 a 70      M Sputnik      Público
+  8    30 o menos      F Sputnik      Público
+  9    30 o menos      M Sputnik      Público
+  10      31 a 40      F Sputnik      Público
+  11      31 a 40      M Sputnik      Público
+  12      31 a 40      M Sputnik      Público
+  13      41 a 50      F Sputnik      Público
+  14      51 a 60      M Sputnik      Público
+  15      31 a 40      F Sputnik      Público
+  16      41 a 50      F Sputnik      Público
+  17   30 o menos      F Sputnik      Público
+  18   30 o menos      M Sputnik      Público
+  19      31 a 40      F Sputnik      Público
+  20      31 a 40      M Sputnik      Público
+  21      41 a 50      F Sputnik      Público
+  22      41 a 50      M Sputnik      Público
+  23      51 a 60      F Sputnik      Público
+  24      51 a 60      M Sputnik      Público
+  25      61 a 70      F Sputnik      Público
+   [ reached 'max' / getOption("max.print") -- omitted 20685 rows ]
+```
+]]
+
+---
+Podemos utilizar operadores lógicos para mejorar los filtros:
+---
+
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* select(2:5)
+```
+]]
+.column[.content[
+
+```
+     GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR
+  1       31 a 40      M Sputnik          Público
+  2       31 a 40      M Sputnik Público nacional
+  3       41 a 50      F Sputnik          Privado
+  4       41 a 50      F Sputnik          Público
+  5       41 a 50      F Sputnik Público nacional
+  6       41 a 50      F Sputnik Público nacional
+  7       41 a 50      M Sputnik          Privado
+  8       41 a 50      M Sputnik          Público
+  9       41 a 50      M Sputnik Público nacional
+  10      51 a 60      F Sputnik          Privado
+  11      51 a 60      F Sputnik          Público
+  12      51 a 60      F Sputnik Público nacional
+  13      51 a 60      M Sputnik          Privado
+  14      51 a 60      M Sputnik          Público
+  15      51 a 60      M Sputnik Público nacional
+  16      61 a 70      F Sputnik          Público
+  17      61 a 70      M Sputnik          Público
+  18      61 a 70      M Sputnik Público nacional
+  19   30 o menos      F Sputnik          Privado
+  20   30 o menos      F Sputnik          Público
+  21   30 o menos      F Sputnik Público nacional
+  22   30 o menos      M Sputnik          Privado
+  23   30 o menos      M Sputnik          Público
+  24   30 o menos      M Sputnik Público nacional
+  25      31 a 40      F Sputnik          Privado
+   [ reached 'max' / getOption("max.print") -- omitted 27879 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  select(2:5) %&gt;%  
+* filter(TIPO_EFECTOR == 'Público'| TIPO_EFECTOR =='Público nacional')
+```
+]]
+.column[.content[
+
+```
+     GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR
+  1       31 a 40      M Sputnik          Público
+  2       31 a 40      M Sputnik Público nacional
+  3       41 a 50      F Sputnik          Público
+  4       41 a 50      F Sputnik Público nacional
+  5       41 a 50      F Sputnik Público nacional
+  6       41 a 50      M Sputnik          Público
+  7       41 a 50      M Sputnik Público nacional
+  8       51 a 60      F Sputnik          Público
+  9       51 a 60      F Sputnik Público nacional
+  10      51 a 60      M Sputnik          Público
+  11      51 a 60      M Sputnik Público nacional
+  12      61 a 70      F Sputnik          Público
+  13      61 a 70      M Sputnik          Público
+  14      61 a 70      M Sputnik Público nacional
+  15   30 o menos      F Sputnik          Público
+  16   30 o menos      F Sputnik Público nacional
+  17   30 o menos      M Sputnik          Público
+  18   30 o menos      M Sputnik Público nacional
+  19      31 a 40      F Sputnik          Público
+  20      31 a 40      F Sputnik Público nacional
+  21      31 a 40      M Sputnik          Público
+  22      31 a 40      M Sputnik Público nacional
+  23      31 a 40      M Sputnik          Público
+  24      41 a 50      F Sputnik          Público
+  25      51 a 60      M Sputnik          Público
+   [ reached 'max' / getOption("max.print") -- omitted 22773 rows ]
+```
+]]
+
+
+---
+class: middle, center
+
+# __mutate()__
+
+***
+
+---
+
+#### _Esta función crea nuevas variables (columnas) o transforma las existentes_
+
+---
+
+```r
+df %&gt;% 
+   mutate(var_nueva = as.numeric(variable1))
+```
+---
+class: center, middle
+
+Supongamos que queremos una nueva variable que nos indique el total de vacunas que se aplicaron por fila
+---
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* select("DOSIS_1", "DOSIS_2", "DOSIS_3")
+```
+]]
+.column[.content[
+
+```
+     DOSIS_1 DOSIS_2 DOSIS_3
+  1        4     168       0
+  2        0      17       0
+  3        0      32       0
+  4       15     251       0
+  5        0       9       0
+  6       14       0       0
+  7       18       0       0
+  8      169       0       0
+  9        4       0       0
+  10      14       0       0
+  11     182       0       0
+  12       8       0       0
+  13      16       0       0
+  14     102       0       0
+  15       5       0       0
+  16       3       0       0
+  17       4       0       0
+  18       1       0       0
+  19       3       0       0
+  20      24       0       0
+  21      13       0       0
+  22       1       0       0
+  23      10       0       0
+  24       3       0       0
+  25       4       0       0
+  26      81       0       0
+  27      17       0       0
+  28       9       0       0
+  29      50       0       0
+  30      11       0       0
+  31       0       1       0
+  32       1       7       0
+  33       0       2       0
+   [ reached 'max' / getOption("max.print") -- omitted 27871 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  select("DOSIS_1", "DOSIS_2", "DOSIS_3") %&gt;%  
+* mutate(total_aplicadas = DOSIS_1 + DOSIS_2+ DOSIS_3)
+```
+]]
+.column[.content[
+
+```
+     DOSIS_1 DOSIS_2 DOSIS_3 total_aplicadas
+  1        4     168       0             172
+  2        0      17       0              17
+  3        0      32       0              32
+  4       15     251       0             266
+  5        0       9       0               9
+  6       14       0       0              14
+  7       18       0       0              18
+  8      169       0       0             169
+  9        4       0       0               4
+  10      14       0       0              14
+  11     182       0       0             182
+  12       8       0       0               8
+  13      16       0       0              16
+  14     102       0       0             102
+  15       5       0       0               5
+  16       3       0       0               3
+  17       4       0       0               4
+  18       1       0       0               1
+  19       3       0       0               3
+  20      24       0       0              24
+  21      13       0       0              13
+  22       1       0       0               1
+  23      10       0       0              10
+  24       3       0       0               3
+  25       4       0       0               4
+   [ reached 'max' / getOption("max.print") -- omitted 27879 rows ]
+```
+]]
+
+---
+class: center, middle
+
+## Mutate también permite editar una variable existente.
+---
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df %&gt;%
+* mutate(FECHA_ADMINISTRACION = str_sub(FECHA_ADMINISTRACION, 1,9))
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1             29JAN2021      31 a 40      M Sputnik          Público       4
+  2             29JAN2021      31 a 40      M Sputnik Público nacional       0
+  3             29JAN2021      41 a 50      F Sputnik          Privado       0
+  4             29JAN2021      41 a 50      F Sputnik          Público      15
+  5             29JAN2021      41 a 50      F Sputnik Público nacional       0
+  6             08JAN2021      41 a 50      F Sputnik Público nacional      14
+  7             08JAN2021      41 a 50      M Sputnik          Privado      18
+  8             08JAN2021      41 a 50      M Sputnik          Público     169
+  9             08JAN2021      41 a 50      M Sputnik Público nacional       4
+  10            08JAN2021      51 a 60      F Sputnik          Privado      14
+  11            08JAN2021      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  mutate(FECHA_ADMINISTRACION = str_sub(FECHA_ADMINISTRACION, 1,9))  
+* #La función str_sub() la veremos en la clase 4  #La función str_sub() la veremos en la clase 4
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1             29JAN2021      31 a 40      M Sputnik          Público       4
+  2             29JAN2021      31 a 40      M Sputnik Público nacional       0
+  3             29JAN2021      41 a 50      F Sputnik          Privado       0
+  4             29JAN2021      41 a 50      F Sputnik          Público      15
+  5             29JAN2021      41 a 50      F Sputnik Público nacional       0
+  6             08JAN2021      41 a 50      F Sputnik Público nacional      14
+  7             08JAN2021      41 a 50      M Sputnik          Privado      18
+  8             08JAN2021      41 a 50      M Sputnik          Público     169
+  9             08JAN2021      41 a 50      M Sputnik Público nacional       4
+  10            08JAN2021      51 a 60      F Sputnik          Privado      14
+  11            08JAN2021      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  mutate(FECHA_ADMINISTRACION = str_sub(FECHA_ADMINISTRACION, 1,9))  
+  #La función str_sub() la veremos en la clase 4  #La función str_sub() la veremos en la clase 4
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1             29JAN2021      31 a 40      M Sputnik          Público       4
+  2             29JAN2021      31 a 40      M Sputnik Público nacional       0
+  3             29JAN2021      41 a 50      F Sputnik          Privado       0
+  4             29JAN2021      41 a 50      F Sputnik          Público      15
+  5             29JAN2021      41 a 50      F Sputnik Público nacional       0
+  6             08JAN2021      41 a 50      F Sputnik Público nacional      14
+  7             08JAN2021      41 a 50      M Sputnik          Privado      18
+  8             08JAN2021      41 a 50      M Sputnik          Público     169
+  9             08JAN2021      41 a 50      M Sputnik Público nacional       4
+  10            08JAN2021      51 a 60      F Sputnik          Privado      14
+  11            08JAN2021      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+
+---
+
+class: middle, center
+
+# __rename()__
+
+***
+
+#### _Asigna un nuevo nombre a variables existentes_
+
+---
+
+```r
+df %&gt;% 
+   rename(var_nueva = var_vieja)
+```
+---
+
+class: center, middle
+
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* select(1:5)
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público
+  12   08JAN2021:00:00:00      51 a 60      F Sputnik Público nacional
+  13   08JAN2021:00:00:00      51 a 60      M Sputnik          Privado
+  14   08JAN2021:00:00:00      51 a 60      M Sputnik          Público
+  15   08JAN2021:00:00:00      51 a 60      M Sputnik Público nacional
+  16   08JAN2021:00:00:00      61 a 70      F Sputnik          Público
+  17   08JAN2021:00:00:00      61 a 70      M Sputnik          Público
+  18   08JAN2021:00:00:00      61 a 70      M Sputnik Público nacional
+  19   09JAN2021:00:00:00   30 o menos      F Sputnik          Privado
+  20   09JAN2021:00:00:00   30 o menos      F Sputnik          Público
+   [ reached 'max' / getOption("max.print") -- omitted 27884 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  select(1:5) %&gt;%  
+* rename(Aplicacion = FECHA_ADMINISTRACION,
+*        Marca_vacuna = VACUNA,
+*        Intervalo_Edad = GRUPO_ETARIO)
+```
+]]
+.column[.content[
+
+```
+             Aplicacion Intervalo_Edad GENERO Marca_vacuna     TIPO_EFECTOR
+  1  29JAN2021:00:00:00        31 a 40      M      Sputnik          Público
+  2  29JAN2021:00:00:00        31 a 40      M      Sputnik Público nacional
+  3  29JAN2021:00:00:00        41 a 50      F      Sputnik          Privado
+  4  29JAN2021:00:00:00        41 a 50      F      Sputnik          Público
+  5  29JAN2021:00:00:00        41 a 50      F      Sputnik Público nacional
+  6  08JAN2021:00:00:00        41 a 50      F      Sputnik Público nacional
+  7  08JAN2021:00:00:00        41 a 50      M      Sputnik          Privado
+  8  08JAN2021:00:00:00        41 a 50      M      Sputnik          Público
+  9  08JAN2021:00:00:00        41 a 50      M      Sputnik Público nacional
+  10 08JAN2021:00:00:00        51 a 60      F      Sputnik          Privado
+  11 08JAN2021:00:00:00        51 a 60      F      Sputnik          Público
+  12 08JAN2021:00:00:00        51 a 60      F      Sputnik Público nacional
+  13 08JAN2021:00:00:00        51 a 60      M      Sputnik          Privado
+  14 08JAN2021:00:00:00        51 a 60      M      Sputnik          Público
+  15 08JAN2021:00:00:00        51 a 60      M      Sputnik Público nacional
+  16 08JAN2021:00:00:00        61 a 70      F      Sputnik          Público
+  17 08JAN2021:00:00:00        61 a 70      M      Sputnik          Público
+  18 08JAN2021:00:00:00        61 a 70      M      Sputnik Público nacional
+  19 09JAN2021:00:00:00     30 o menos      F      Sputnik          Privado
+  20 09JAN2021:00:00:00     30 o menos      F      Sputnik          Público
+   [ reached 'max' / getOption("max.print") -- omitted 27884 rows ]
+```
+]]
+
+---
+
+class: middle, center
+
+# __arrange()__
+
+***
+
+#### _Ordena el data frame según la variable que indiquemos_
+
+Por defecto va a ordenar de manera ascendente
+
+---
+
+```r
+df %&gt;% 
+   arrange(variable)
+```
+
+&lt;br&gt;
+
+Si queremos que ordene de manera descendente, debemos agregar desc() o - a arrange()
+
+&lt;br&gt;&lt;br&gt;
+```r
+df %&gt;% 
+   arrange(desc(variable))
+```
+&lt;br&gt;&lt;br&gt;
+
+```r
+df %&gt;% 
+   arrange(-variable)
+```
+---
+
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* select(5:7)
+```
+]]
+.column[.content[
+
+```
+         TIPO_EFECTOR DOSIS_1 DOSIS_2
+  1           Público       4     168
+  2  Público nacional       0      17
+  3           Privado       0      32
+  4           Público      15     251
+  5  Público nacional       0       9
+  6  Público nacional      14       0
+  7           Privado      18       0
+  8           Público     169       0
+  9  Público nacional       4       0
+  10          Privado      14       0
+  11          Público     182       0
+  12 Público nacional       8       0
+  13          Privado      16       0
+  14          Público     102       0
+  15 Público nacional       5       0
+  16          Público       3       0
+  17          Público       4       0
+  18 Público nacional       1       0
+  19          Privado       3       0
+  20          Público      24       0
+  21 Público nacional      13       0
+  22          Privado       1       0
+  23          Público      10       0
+  24 Público nacional       3       0
+  25          Privado       4       0
+  26          Público      81       0
+  27 Público nacional      17       0
+  28          Privado       9       0
+  29          Público      50       0
+  30 Público nacional      11       0
+  31          Público       0       1
+  32          Privado       1       7
+  33          Público       0       2
+   [ reached 'max' / getOption("max.print") -- omitted 27871 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  select(5:7) %&gt;%  
+* arrange(DOSIS_1)
+```
+]]
+.column[.content[
+
+```
+         TIPO_EFECTOR DOSIS_1 DOSIS_2
+  1  Público nacional       0      17
+  2           Privado       0      32
+  3  Público nacional       0       9
+  4           Público       0       1
+  5           Público       0       2
+  6           Privado       0       1
+  7           Público       0       1
+  8  Público nacional       0       1
+  9  Público nacional       0       1
+  10          Público       0       4
+  11 Público nacional       0       6
+  12 Público nacional       0       2
+  13          Público       0       2
+  14 Público nacional       0       5
+  15 Público nacional       0       2
+  16 Público nacional       0       3
+  17          Público       0       1
+  18          Público       0       2
+  19          Público       0       1
+  20          Público       0       1
+  21          Privado       0       5
+  22          Privado       0      15
+  23 Público nacional       0       4
+  24          Privado       0       8
+  25 Público nacional       0       3
+  26          Privado       0       8
+  27          Privado       0       3
+  28          Privado       0       4
+  29          Privado       0       2
+  30          Público       0       1
+  31          Privado       0       1
+  32          Público       0       1
+  33 Público nacional       0       9
+   [ reached 'max' / getOption("max.print") -- omitted 27871 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  select(5:7) %&gt;%  
+  arrange(DOSIS_1) %&gt;%  
+* arrange(desc(DOSIS_1))
+```
+]]
+.column[.content[
+
+```
+     TIPO_EFECTOR DOSIS_1 DOSIS_2
+  1       Público   16517      22
+  2       Público   14820      32
+  3       Público   14645      13
+  4       Público   14506      13
+  5       Público   14317       0
+  6       Público   14209      21
+  7       Público   13589      22
+  8       Público   13422       1
+  9       Público   13410       7
+  10      Público   13391       7
+  11      Público   12910      12
+  12      Público   12440       5
+  13      Público   12433       2
+  14      Público   11913      49
+  15      Público   11577       1
+  16      Público   11529       0
+  17      Público   11448      11
+  18      Público   11447       5
+  19      Público   11268       1
+  20      Público   10972       0
+  21      Público   10964       2
+  22      Público   10854       1
+  23      Público   10622       2
+  24      Público   10555       0
+  25      Público   10296       0
+  26      Público    9687      95
+  27      Público    9571     252
+  28      Público    9569     101
+  29      Público    9527     256
+  30      Público    9132       1
+  31      Público    9095       0
+  32      Público    9037       1
+  33      Público    8754       0
+   [ reached 'max' / getOption("max.print") -- omitted 27871 rows ]
+```
+]]
+
+---
+class: middle, center
+
+# __summarise()__
+
+***
+
+#### _Crea una variable resumen una nueva tabla_
+
+---
+
+&lt;br&gt;&lt;br&gt;
+&lt;br&gt;&lt;br&gt;
+
+```r
+df %&gt;% 
+        summarise(var1_resumen = sum(var1),
+                  var2_media   = mean(var2),
+                  var2_desvio  = sd(var2))
+```
+---
+
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* summarise(total_dosis_1 = sum(DOSIS_1),
+*           total_dosis_2 = sum(DOSIS_2),
+*           total_dosis_3 = sum(DOSIS_3, na.rm = TRUE))
+```
+]]
+.column[.content[
+
+```
+    total_dosis_1 total_dosis_2 total_dosis_3
+  1       2864839       2702182       1788337
+```
+]]
+---
+class: middle, center
+
+# __group_by()__
+
+***
+
+#### _Agrupa a partir de una o más variables seleccionadas_
+
+
+---
+
+&lt;br&gt;&lt;br&gt;
+&lt;br&gt;&lt;br&gt;
+
+```r
+df %&gt;% 
+        group_by(var1)
+```
+
+---
+class: center, middle
+Agrupemos por género para saber el total de las 1eras dosis aplicadas:
+
+---
+
+
+
+class: split-40
+count: false
+.column[.content[
+
+```r
+*df
+```
+]]
+.column[.content[
+
+```
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO  VACUNA     TIPO_EFECTOR DOSIS_1
+  1    29JAN2021:00:00:00      31 a 40      M Sputnik          Público       4
+  2    29JAN2021:00:00:00      31 a 40      M Sputnik Público nacional       0
+  3    29JAN2021:00:00:00      41 a 50      F Sputnik          Privado       0
+  4    29JAN2021:00:00:00      41 a 50      F Sputnik          Público      15
+  5    29JAN2021:00:00:00      41 a 50      F Sputnik Público nacional       0
+  6    08JAN2021:00:00:00      41 a 50      F Sputnik Público nacional      14
+  7    08JAN2021:00:00:00      41 a 50      M Sputnik          Privado      18
+  8    08JAN2021:00:00:00      41 a 50      M Sputnik          Público     169
+  9    08JAN2021:00:00:00      41 a 50      M Sputnik Público nacional       4
+  10   08JAN2021:00:00:00      51 a 60      F Sputnik          Privado      14
+  11   08JAN2021:00:00:00      51 a 60      F Sputnik          Público     182
+     DOSIS_2 ID_CARGA DOSIS_3
+  1      168       NA       0
+  2       17       NA       0
+  3       32       NA       0
+  4      251       NA       0
+  5        9       NA       0
+  6        0       NA       0
+  7        0       NA       0
+  8        0       NA       0
+  9        0       NA       0
+  10       0       NA       0
+  11       0       NA       0
+   [ reached 'max' / getOption("max.print") -- omitted 27893 rows ]
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+* group_by(GENERO)
+```
+]]
+.column[.content[
+
+```
+  # A tibble: 27,904 × 9
+  # Groups:   GENERO [3]
+     FECHA_ADMINISTRACION GRUPO_ETARIO GENERO VACUNA  TIPO_EFECTOR DOSIS_1 DOSIS_2
+     &lt;chr&gt;                &lt;chr&gt;        &lt;chr&gt;  &lt;chr&gt;   &lt;chr&gt;          &lt;int&gt;   &lt;int&gt;
+   1 29JAN2021:00:00:00   31 a 40      M      Sputnik Público            4     168
+   2 29JAN2021:00:00:00   31 a 40      M      Sputnik Público nac…       0      17
+   3 29JAN2021:00:00:00   41 a 50      F      Sputnik Privado            0      32
+   4 29JAN2021:00:00:00   41 a 50      F      Sputnik Público           15     251
+   5 29JAN2021:00:00:00   41 a 50      F      Sputnik Público nac…       0       9
+   6 08JAN2021:00:00:00   41 a 50      F      Sputnik Público nac…      14       0
+   7 08JAN2021:00:00:00   41 a 50      M      Sputnik Privado           18       0
+   8 08JAN2021:00:00:00   41 a 50      M      Sputnik Público          169       0
+   9 08JAN2021:00:00:00   41 a 50      M      Sputnik Público nac…       4       0
+  10 08JAN2021:00:00:00   51 a 60      F      Sputnik Privado           14       0
+  # … with 27,894 more rows, and 2 more variables: ID_CARGA &lt;lgl&gt;, DOSIS_3 &lt;int&gt;
+```
+]]
+---
+class: split-40
+count: false
+.column[.content[
+
+```r
+df %&gt;%  
+  group_by(GENERO) %&gt;%  
+* summarise(TOTAL_DOSIS_1 = sum(DOSIS_1),
+*           TOTAL_DOSIS_2 = sum(DOSIS_2),
+*           TOTAL_DOSIS_3 = sum(DOSIS_3, na.rm=TRUE),
+*           TOTAL_APLICADO = TOTAL_DOSIS_1 + TOTAL_DOSIS_2 +TOTAL_DOSIS_3)
+```
+]]
+.column[.content[
+
+```
+  # A tibble: 3 × 5
+    GENERO TOTAL_DOSIS_1 TOTAL_DOSIS_2 TOTAL_DOSIS_3 TOTAL_APLICADO
+    &lt;chr&gt;          &lt;int&gt;         &lt;int&gt;         &lt;int&gt;          &lt;int&gt;
+  1 F            1536524       1460966        989827        3987317
+  2 M            1328304       1241209        798505        3368018
+  3 N                 11             7             5             23
+```
+]]
+
+---
+# __pivot_longer()__
+***
+#### _Reestructura la base, apilando en una columna varias columnas_
+
+---
+
+
+```r
+df %&gt;% 
+  group_by(GENERO)  %&gt;% 
+  summarise(TOTAL_DOSIS_1 = sum(DOSIS_1),
+            TOTAL_DOSIS_2 = sum(DOSIS_2),
+            TOTAL_DOSIS_3 = sum(DOSIS_3, na.rm=TRUE)) %&gt;% 
+ pivot_longer(2:4, names_to = "DOSIS", values_to = "Total")
+```
+
+```
+  # A tibble: 9 × 3
+    GENERO DOSIS           Total
+    &lt;chr&gt;  &lt;chr&gt;           &lt;int&gt;
+  1 F      TOTAL_DOSIS_1 1536524
+  2 F      TOTAL_DOSIS_2 1460966
+  3 F      TOTAL_DOSIS_3  989827
+  4 M      TOTAL_DOSIS_1 1328304
+  5 M      TOTAL_DOSIS_2 1241209
+  6 M      TOTAL_DOSIS_3  798505
+  7 N      TOTAL_DOSIS_1      11
+  8 N      TOTAL_DOSIS_2       7
+  9 N      TOTAL_DOSIS_3       5
+```
+
+---
+
+class: middle, center
+
+# __pivot_wider()__
+***
+#### _Reestructura la base, apilando en varias columnas a una  por cada categoría de la misma_
+
+---
+
+
+```r
+df %&gt;% 
+  group_by(GENERO) %&gt;% 
+  dplyr::summarise(TOTAL_DOSIS_1 = sum(DOSIS_1),
+            TOTAL_DOSIS_2 = sum(DOSIS_2),
+            TOTAL_DOSIS_3 = sum(DOSIS_3, na.rm=TRUE)) %&gt;% 
+  pivot_longer(2:4, names_to = "DOSIS", values_to = "Total") %&gt;% 
+  pivot_wider(names_from = "DOSIS", values_from = "Total")
+```
+
+```
+  # A tibble: 3 × 4
+    GENERO TOTAL_DOSIS_1 TOTAL_DOSIS_2 TOTAL_DOSIS_3
+    &lt;chr&gt;          &lt;int&gt;         &lt;int&gt;         &lt;int&gt;
+  1 F            1536524       1460966        989827
+  2 M            1328304       1241209        798505
+  3 N                 11             7             5
+```
+
+---
+
+class: center, middle
+
+# __¡A codear!__
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"ratio": "16:9",
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"df_print": "kable"
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

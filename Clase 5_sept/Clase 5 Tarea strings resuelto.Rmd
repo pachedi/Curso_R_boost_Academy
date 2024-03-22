@@ -1,0 +1,145 @@
+---
+title: "Clase 5 Tarea Strings Resuelto"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    #number_sections: true
+    theme: lumen
+---
+
+```{r results = FALSE, warning = FALSE, message = FALSE}
+library(stringr)
+library(tidyverse)
+library(RVerbalExpressions)
+library(wordcloud2)
+library(tidytext)
+```
+
+Funciones strings.
+Crear un objeto de caracteres con 5 palabras.
+Medir el largo del objeto
+Crear un nuevo objeto con la última palabra del objeto anterior
+```{r  }
+chr <- 'hola esto es un string'
+str_length(chr)
+```
+
+```{r  }
+str_sub(chr, -6,-1)
+```
+Crear un vector numérico:
+telefonos <- c('4567-2334','3444-7737', '4332-9929','9929-2282')
+agregar el prefijo '011' con separador '-'
+```{r  }
+telefonos <- c('4567-2334','3444-7737', '4332-9929','9929-2282')
+bsas <- str_c('011', telefonos, sep = '-')
+bsas
+```
+
+Pasar a mayúscula el siguiente vector:
+programar ='La programación informática se refiere a la creación de software y el cómo se le indica al ordenador lo que tiene que hacer mediante instrucciones'
+```{r  }
+programar ='La programación informática se refiere a la creación de software y el cómo se le indica al ordenador lo que tiene que hacer mediante instrucciones'
+
+str_to_upper(programar)
+
+```
+Cargar la base de twits con el #PaseSanitario del siguiente link:
+https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/tweets_Pase_Sanitario.csv
+```{r  }
+PS <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/tweets_Pase_Sanitario.csv') %>% 
+  select(2)
+
+```
+
+str_detect()
+Crear un objeto nuevo que contenga sólo los twits que tienen la palabra:
+Estado o estado
+```{r  }
+estado <- PS %>% 
+  filter(str_detect(string = text, pattern = '(E|e)stado'))
+nrow(estado)
+
+```
+Anclas.
+Crear un nuevo objeto a partir de la base de twits que contenta todos los twits que empiezan con '#PaseSanitario'
+```{r  }
+
+hashtag <- PS %>% 
+  filter(str_detect(string = text, pattern = '^#PaseSanitario'))
+
+head(hashtag$text)
+
+```
+
+Crear un nuevo objeto filtrado por los twits que terminan con #PaseSanitario
+```{r  }
+
+hashtag_final <- PS %>% 
+  filter(str_detect(string = text, pattern = '#PaseSanitario$'))
+head(hashtag_final$text)
+
+```
+Obtener los unigrams de la base de twits PaseSanitario realizando las operaciones de limpieza de datos y eliminando las stop words.
+stop_words <- read.delim('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/stop_words.csv')
+```{r  }
+
+twits <- PS %>% 
+  rename(txt = 1)
+
+hasthag_mencion <- "(@|#)([^ ]*)" 
+
+webs <- rx() %>% 
+  rx_find('http')%>% 
+  rx_anything_but(value = ' ') 
+
+twits_2 <- twits %>% 
+  mutate(txt = str_replace_all(txt, hasthag_mencion, ''))
+
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_replace_all(txt, webs, ''))
+
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_to_lower(txt))
+
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_replace_all(txt, "[^[:alnum:][:blank:]]", ''))
+
+twits_2 <- twits_2 %>% 
+  mutate(txt = str_replace_all(txt, "[[:digit:]]", ''))
+
+stop_words <- read.delim('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/stop_words.csv')
+
+unigram <- twits_2 %>% 
+  unnest_tokens(word, txt, token = "ngrams", n = 1) %>%
+  na.omit() %>%  
+  filter(!word %in% stop_words$word) %>% 
+  count(word, sort = TRUE) %>%  
+  slice(1:50) 
+
+head(unigram)
+```
+  
+Crear nube de palabras con la lista de unigram
+```{r  }
+wordcloud2(unigram)
+```
+Crear bigram para la base de twits de PaseSanitario
+```{r  }
+bigrams <- twits_2 %>% 
+  unnest_tokens(word, txt, token = "ngrams", n = 2) %>%
+  na.omit() %>% 
+  separate(word, c("word1", "word2"), sep = " ") %>% 
+  filter(!word1 %in% stop_words$word) %>%
+  filter(!word2 %in% stop_words$word) %>% 
+  unite(word,word1, word2, sep = " ") %>% 
+  count(word, sort = TRUE) %>% 
+  slice(1:10)
+
+head(bigrams)
+
+```
+

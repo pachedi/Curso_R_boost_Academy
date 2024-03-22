@@ -1,0 +1,273 @@
+---
+title: "DEBATE PRESIDENCIAL"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    #number_sections: true
+    theme: lumen
+---
+
+## DEBATE PRESIDENCIAL
+
+El 1 de octubre se realizó el 1er debate presidencial 2023 con los candidatos definidos para la 1era vuelta.
+A partir de la transcripción de este debate con IA, realizaremos el procesamiento y construcción de nube de palabras de un candidato.
+
+
+```{r setup, include=FALSE}
+library(stringr)
+library(tidyverse)
+library(RVerbalExpressions)
+library(wordcloud2)
+library(tidytext)
+library(webshot)
+library("htmlwidgets")
+library(stringi)
+
+
+```
+
+En 1er lugar cargamos la base de texto sin encabezado y renombrando la columna 
+como txt:
+```{r}
+base <- read.delim("transcripcion_debate.txt",
+                   header= F) %>% 
+  rename(txt = 1)
+```
+
+
+El problema principal de este corpus es que si bien, quien habla está separado
+en un línea, cada intervención no contiene el texto del orador en la misma celda.
+Entonces, debemos lograr un método para poder diferenciar y filtrar la información
+de cuando hablan lxs distintxs candidatxs.
+En 1er lugar creamos una columna vacía que se llame "Orador"
+```{r}
+base2 <- base %>% 
+  mutate(Orador = NA)
+
+
+```
+
+Ya tenemos la columna por la que filtraremos la información.
+En segunda instancia, tenemos que asegurarnos de qué manera están nombrados 
+lxs candidatxs.
+Podemos dar por sentado que las líneas que indican quién hablar no tienen más 
+de dos palabras (nombre y apellido) por lo que haremos un filtrado de información
+quedándonos tan solo con las filas que tienen 2 palabras o menos.
+Para esto utilizamos la función "str_count"
+```{r}
+
+nombres <- base2 %>% 
+  filter(str_count(txt, "\\w+") <=2)
+
+```
+
+Como resultado, tenemos 162 filas. Es decir, existen 162 filas que indican 
+quién habla. Pero esas filas se repiten cada vez que habla alguien. Por lo tanto,
+nos quedaremos tan sólo con los valores únicos para explorar esa información.
+
+```{r}
+
+nombres <- unique(nombres$txt)
+nombres
+```
+Tal como podemos ver, los candidatos están nombrados por su nombre, nombre y apellido
+y encontramos además un inconveniente. Algunas veces hay un espacio al final
+del orador. Por otro lado, nos quedó una fila con 2 palabras "la educación".
+Posteriormente nos ocuparemos de esa fila.
+En primer lugar nos ocupamos de eliminar los espacios a los costados de los nombres
+de los oradores.
+```{r}
+
+base2 <- base2 %>% 
+  mutate(txt = str_trim(txt, side="both"))
+
+```
+
+Luego, cambiamos los nombres de los oradores que tienen apellido por su 
+nombre de pila, de esta manera cada vez que habla alguien está nombrado 
+siempre de la misma manera.
+```{r}
+
+base2 <- base2 %>% 
+  mutate(txt = str_replace_all(txt, "Myriam Bregman:", "Bregman:"),
+         txt = str_replace_all(txt,"Juan Schiaretti:", "Schiaretti:"),
+         txt = str_replace_all(txt, "Patricia Bullrich:", "Bullrich:"),
+         txt = str_replace_all(txt, "Sergio Massa:", "Massa:"),
+         txt = str_replace_all(txt, "Javier Milei:", "Milei:"),
+         txt = str_replace_all(txt, "Moderador:" , "Moderadores:"))
+
+```
+
+
+Ahora tenemos que pasar los nombres de los oradores del texto a la fila
+de la columna "oradores".
+Para eso volvemos a hacer el mismo proceso con "case_when" solo que esta vez
+lo llevamos a la columna correspondiente.
+```{r}
+
+base2 <- base2 %>% 
+  mutate(Orador = case_when(txt == "Bregman:" ~ "Bregman",
+                             txt == "Milei:" ~ "Milei",
+                             txt == "Schiaretti:" ~ "Schiaretti",
+                             txt == "Moderadores:" ~ "Moderadores",
+                             txt == "Bullrich:" ~ "Bullrich",
+                             txt == "Massa:" ~ "Massa"))
+
+```
+
+
+Chequeemos nuevamente que efectivamente los nombres de los candidatos
+fueron reemplazados de manera correcta:
+```{r}
+
+nombres <- base2 %>% 
+  filter(str_count(txt, "\\w+") <=2)
+
+nombres <- unique(nombres$txt)
+
+nombres
+
+```
+Efectivamente ahora tenemos sólo los nombres de los candidatos y nos quedó pendiente
+deshacernos del valor "La educación".
+Para eso, primero tenemos que detectar en qué fila se encuentra y decidir 
+qué hacer con esa información.
+```{r}
+
+which(base2$txt == "La educación")
+
+```
+
+La función "which" nos indica que ese dato está en la fila 220.
+```{r}
+
+base2$txt[220]
+
+```
+¿Qué hacemos entonces con este dato?
+Al mirar la base, vemos que es el principio de la oración que continúa en 
+la fila siguiente. Por lo que la unimos con paste0 y  luego nos deshacemos
+de ella.
+```{r}
+base2$txt[220] = paste("La eduacación", base2$txt[221])
+
+```
+
+```{r}
+base2 <- base2 %>% 
+  slice(-221)
+```
+
+
+Ahora nos queda encontrar la manera de poder filtrar la información 
+cada vez que habla un orador.
+Sabemos que todo el texto que está abajo de un orador es lo que dice
+hasta que comienza a hablar otra persona.
+Lo que podemos hacer entonces es rellenar los valores de abajo del orador
+hasta que habla otra persona en toda la columna. Eso lo hacemos con la función
+fill()
+```{r}
+
+base3 <- base2 %>% 
+fill(Orador, .direction = "down") 
+
+```
+
+
+Ahora vemos que tenemos toda la columna "Oradores" con información.
+Eso nos permite filtrar por orador y crear una nube de palabras.
+```{r}
+head(base3)
+```
+
+Por ejemplo, filtramos por "Bregman"
+```{r}
+
+bregman <- base3 %>% 
+  filter(Orador=="Bregman")
+
+```
+
+Si bien el nombre de la persona nos sirvió para crear la columna,
+ahora ya no nos sirve más porque no es una palabra dicha sino un nombre.
+Por lo tanto, tenemos que eliminar esa información.
+Lo hacemos con str_replace_all y nos deshacemos de la columna "orador"
+que deja de ser una variable y pasa a ser una constante.
+```{r}
+
+nombre <- "Bregman:"
+
+bregman  <- bregman %>% 
+  mutate(txt = str_replace_all(txt, nombre, ''))
+
+bregman <- bregman %>% 
+  select(-2)
+
+```
+
+Ahora comenzamos con el proceso de limpieza de texto para crear la nube de
+palabras.
+En 1er lugar pasamos todo a minúsculas.
+```{r}
+
+bregman <- bregman %>% 
+  mutate(txt = str_to_lower(txt))
+
+```
+
+
+Luego, eliminamos los dígitos si es que los hubiera:
+```{r}
+
+bregman <- bregman %>% 
+  mutate(txt = str_replace_all(txt, "[[:digit:]]", ''))
+
+```
+
+Ahora, cargamos la base "Stop_words" para tener la lista de las 
+palabras que nos interesa eliminar.
+Las llamadas "stop words" son palabras que no se considera que tengan contenido propiamiente sino que son palabras que sirven para darle coherencia a las frases.
+Preposiciones, pronombres, artículos, conjunciones etc.
+```{r}
+stop_words <- read.delim('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/stop_words.csv')
+
+```
+
+Tokenizamos la base y omitimos las filas vacías.
+Luego realizamos un "anti join" con la lista de stop words
+```{r}
+
+unigram <- bregman %>% 
+  unnest_tokens(output= word, input= txt, token = "ngrams", n = 1) %>%
+  na.omit() %>%  # omitimos las líneas vacías
+  anti_join(stop_words) # eliminamos las stop words
+
+```
+Hacemos un conteo de esas palabras y las ordenamos de manera descendente
+por cantidad de menciones.
+```{r}
+unigram <- unigram %>% 
+  count(word, sort = TRUE) %>%  # conteo y ordenado
+  slice(1:100) # nos quedamos con las 1eras 50 palabras
+```
+
+Ya tenemos las palabras más veces mencionadas y su frecuencia.
+Ahora podemos visualizar la nube de palabras.
+```{r}
+
+wordcloud2(unigram)
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+

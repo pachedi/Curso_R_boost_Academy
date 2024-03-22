@@ -1,0 +1,198 @@
+---
+title: "Clase 2 - Tidyverse"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    #number_sections: true
+    theme: lumen
+---
+## TIDYVERSE
+En primer lugar instalamos y cargamos la librería.
+```{r results = FALSE, warning = FALSE, message = FALSE}
+# install.packages('tidyverse')
+library(tidyverse)
+library(openxlsx)
+```
+
+## FUNCIONES
+Vamos a hacer un paneo general por las funciones principales de tidyverse.
+En primer lugar, cargamos una base de datos en csv (en este caso, base de datos del programa POTENCIAR trabajo)
+```{r }
+
+base <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/potenciar-trabajo-titulares-activos.csv')
+# Tal como vemos, se vuelve necesario agregar el encoding de la base ya que de lo contrario, vemos de manera extraña los caracteres con tildes.
+base <- read.csv('https://raw.githubusercontent.com/pachedi/INTRO_R_CS/main/potenciar-trabajo-titulares-activos.csv', encoding = "UTF-8")
+
+```
+
+Ya tenemos la base cargada. Podemos usar algunas funciones para comprender nuestra base.
+
+## Dim, unique, colnames, summary
+```{r select, rename }
+# La funcion dim() nos presenta las dimensiones de nuestro data frame:
+# filas columnas
+dim(base)
+
+# Veamos los nombres de las columnas:
+colnames(base)
+
+# Veamos los valores unicos que se presentan en las provincias:
+unique(base$provincia)
+
+# Veamos algunos valores básicos de la tabla:
+summary(base)
+```
+Empecemos a trabajar con la base
+```{r  }
+head(base)
+```
+
+## Filter
+Vemos que la base tiene información de todas las provincias. Supongamos que nos interesa saber tan solo la información de Cordoba. Utilizamos la función filter()
+para filtrar los resultados.
+```{r }
+# Creamos un nuevo objeto llamado Cordoba con los resultados de nuestro filtro.
+
+Cordoba <- base %>% 
+  filter(provincia == 'Córdoba')
+
+```
+
+## Select
+El comando %>%  o 'pipe' se utiliza para anidar funciones en una misma línea de código, de esta manera podemos transformar nuestra base de datos con varias funciones en una misma línea de código.
+Las columnas que tienen 'id' no nos interesan así que podemos deshacernos de ellas.
+```{r }
+# Podemos hacerlo de varias maneras. Una es 'restando' columnas con select
+Cordoba_sin_id <- Cordoba %>% 
+  select(-(c('provincia_id','departamento_id','municipio_id')))
+
+colnames(Cordoba_sin_id)
+
+# Otra puede ser con los numeros de columna:
+
+Cordoba_sin_id_2 <- Cordoba %>% 
+  select(-(c(3,5,7)))
+
+# Otra puede ser seleccionando las columnas que queremos:
+
+Cordoba_sin_id_3 <- Cordoba %>% 
+  select('periodo','provincia','departamento','municipio','titulares')
+
+# Otra puede ser seleccionando las columnas por su orden:
+
+Cordoba_sin_id_4 <- Cordoba %>% 
+  select(1,2,4,6,8)
+
+```
+## Rename
+Tidyverse nos permite también cambiar el nombre de las columnas con la función rename()
+
+```{r }
+# Cambiemos la columna 'titulares' por 'Cantidad_de_titulares'
+
+Cordoba_sin_id <- Cordoba_sin_id %>%
+  rename('Cantidad_de_titulares' = titulares)
+
+```
+
+## Mutate
+La función mutate() es muy útil y necesaria. Nos permite crear nuevas columnas a partir de columnas existentes ya sea realizando operaciones aritméticas o cambiando la clase del dato que contiene.
+```{r }
+# Empezemos por hacer una prueba multiplicando por 2 los titulares:
+Cordoba_doble <- Cordoba %>% 
+  mutate(titulare_x_2 = titulares * 2)
+# Creamos una nueva columna en la cuál está el número de titulares * 2
+head(Cordoba_doble)
+
+```
+Veamos un problema típico en las bases de datos: Las fechas
+```{r }
+# ¿Qué clase tiene la columna 'periodo'?
+class(Cordoba$periodo)
+```
+¡Caramba! Nosotros necesitamos que sea de tipo fecha. 
+Utilizaremos la función mutate() para corregirlo.
+Para eso, necesitamos instalar y cargar el paquete 'lubridate'
+```{r }
+# install.packages('lubridate')
+library(lubridate)
+Cordoba <- Cordoba %>% 
+  mutate(periodo =  ymd(periodo))
+class(Cordoba$periodo)
+```
+¡Excelente!
+Ahora podemos trabajar las fechas como corresponde. Hagamos una prueba:
+```{r }
+Cordoba$periodo[1]
+
+```
+
+```{r }
+Cordoba$periodo[1] + days(1)
+```
+
+Podemos extraer columnas de mes y año a partir de una variable de formato fecha:
+```{r }
+Cordoba <- Cordoba %>% 
+  mutate(mes = months(periodo))
+
+head(Cordoba)
+
+```
+Igual con el año:
+```{r }
+Cordoba <- Cordoba %>% 
+  mutate(anio = year(periodo))
+
+head(Cordoba)
+```
+Si queremos obtener el número del mes (en vez del nombre) utilizamos la funcion "month": 
+```{r }
+Cordoba <- Cordoba %>% 
+  mutate(mes_n = month(periodo))
+
+head(Cordoba)
+
+```
+
+
+## Arrange
+Ordenar una tabla. Para ordenar una tabla la funcioón arrange() resulta de mucha utilidad.
+```{r }
+# Ordenemos por cantidad de titulares
+Cordoba_ordenado <- Cordoba %>% 
+  arrange(titulares)
+head(Cordoba_ordenado)
+
+```
+Como se puede ver, nos ordena la columna de manera ascendente. Si queremos que lo haga de manera descendente, podemos anidar la función desc() dentro de arrange()
+```{r }
+
+Cordoba_ordenado <- Cordoba_ordenado %>% 
+  arrange(desc(titulares))
+head(Cordoba_ordenado)
+```
+
+Ahora bien, si nosotros quisiéramos ordenar la tabla por mes (nombre del mes) nos surge el inconveniente de que R lo lee como string, por lo tanto, va a ordenar la tabla alfabéticamente.
+Podemos solucionar transformando la variable en factor()
+```{r }
+Cordoba <- Cordoba %>% 
+  mutate(mes = factor(mes,
+                      levels = month.name)) %>% 
+  # month.name es un vector caracter que viene ordenado desde la librería lubridate
+  arrange(anio, mes)
+
+head(Cordoba)
+
+
+
+```
+
+
+
+
+
+
