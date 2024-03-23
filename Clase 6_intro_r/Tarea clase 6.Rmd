@@ -1,0 +1,107 @@
+---
+title: "Clase 6 Tarea Programación"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    toc_depth: 3
+    #number_sections: true
+    theme: lumen
+---
+
+```{r results = FALSE, warning = FALSE, message = FALSE}
+
+library(tidyverse)
+
+```
+
+## 1-Crear una función que sume 20% de impuestos a un valor numérico.
+```{r  echo=FALSE}
+
+impuestos <- function(valor){
+  
+  impuesto <- valor * 0.2
+  resultado <-  impuesto + valor
+  return(paste("El valor final con impuestos del producto es de", resultado, "Euros"))
+  
+}
+
+impuestos(20)
+
+```
+
+
+## 2-Crear una función en la que se ingresa la edad y que responda si esa persona es mayor o menor.
+
+```{r echo=FALSE}
+
+mayor_menor <- function(edad){
+  
+  if(is.numeric(edad)== T){
+    
+    if(edad <= 17 & edad >= 0){
+    
+      print("La persona es menor de edad")
+    
+    } else if(edad >= 18){
+    
+      print("La persona es mayor de edad")
+    
+    } else{print("Ingrese un valor numérico a partir de 0")}
+    
+  } else{"Ingrese un valor numérico a partir de 0"}
+  
+}
+
+
+```
+
+## 3-Crear un ciclo definido a partir de la siguiente tabla que imprima el nombre de la persona y su género.
+```{r}
+
+nombre <- c("Marta", "José" , "Mario", "Alberto", "Andrea")
+genero <- c("M", "V", "V", "V", "M")
+df <- data.frame(nombre, genero)
+
+```
+
+
+```{r echo=FALSE}
+for( i  in 1:nrow(df)){
+  print(paste(df$nombre[i], "es", if(df$genero[i] =="V")
+  {"Varón"} else if(df$genero[i] == "M"){
+      "Mujer"}
+    ))
+}
+```
+
+## 4-Crear un ciclo indefinido que imprima todas las letras del abecedario (funcion letters()) excepto las letras j, m y que se corte en el 10mo loop.
+Nota: Hay que combinar un while con un for y crear un contador.
+```{r echo=FALSE}
+
+contador = 0
+
+while(contador < 10){
+  
+  for(i in letters){
+    
+    if(i == "j" | i == "m"){
+      
+      next
+      
+    }else{print(i)}
+    
+  }
+  
+  contador = contador + 1
+  print(contador)
+}
+  
+  
+  
+```
+
+
+
+
