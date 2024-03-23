@@ -1,4 +1,0 @@
-"0",""
-"0","nombres <- base2 %>% "
-"0","  filter(str_count(txt, ""\\w+"") <=2)"
-"0",""

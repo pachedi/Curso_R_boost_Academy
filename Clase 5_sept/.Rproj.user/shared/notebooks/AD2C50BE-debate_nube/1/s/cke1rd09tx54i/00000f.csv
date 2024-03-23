@@ -1,3 +1,0 @@
-"0","unigram <- unigram %>% "
-"0","  count(word, sort = TRUE) %>%  # conteo y ordenado"
-"0","  slice(1:100) # nos quedamos con las 1eras 50 palabras"

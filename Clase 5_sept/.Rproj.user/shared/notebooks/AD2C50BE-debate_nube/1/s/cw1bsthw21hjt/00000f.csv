@@ -1,6 +1,0 @@
-"0",""
-"0","nombre <- ""Bregman:"""
-"0",""
-"0","bregman  <- bregman %>% "
-"0","  mutate(txt = str_replace_all(txt, nombre, ''))"
-"0",""
