@@ -72,10 +72,14 @@ head(grupo_etario)
 vacunas_caba$mes <-  months(as.Date(vacunas_caba$FECHA_ADMINISTRACION)) 
 vacunas_caba$anio <-  year(as.Date(vacunas_caba$FECHA_ADMINISTRACION)) 
 
+meses <- c("enero", "febrero", "marzo", "abril", "mayo","junio",
+           "julio", "agosto","septiembre","octubre","noviembre","diciembre")
+
+
 vacunas_mes <- vacunas_caba %>% 
   group_by(anio,mes) %>% 
   summarise(total = sum(DOSIS_2)) %>% 
-  mutate( mes = factor(mes, levels = month.name) ) %>% 
+  mutate( mes = factor(mes, levels = meses) ) %>% 
   arrange(anio,mes)
 
 vacunas_mes
